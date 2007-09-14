@@ -1,4 +1,7 @@
 require 'test/unit'
+require 'timeout'
+require 'thread'
+
 require File.expand_path(File.dirname(__FILE__) + '/../lib/tserver')
 
 # The test server can send received data to an IO
