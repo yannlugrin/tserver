@@ -27,12 +27,12 @@ require "thread"
 require 'thwait'
 require 'monitor'
 
-# Show README[link://files/README.html] for more information and exemple
+# Show README[link://files/README.html] for more information and exemple.
 class TServer
-	# Return or change the status (value can be set at 'true' or 'false')
+	# Return or change the status (value can be set at 'true' or 'false').
 	attr_accessor :verbose, :debug
 
-	# Return current value of the option
+	# Return current value of the option.
 	attr_reader :port, :host, :max_connection, :min_listener
 
 	DEFAULT_OPTIONS = {
@@ -44,16 +44,16 @@ class TServer
 		:debug => false,
 		:stdlog => $stderr }
 
-	# Initialize a new server (use start to run the server)
+	# Initialize a new server (use start to run the server).
 	#
   # Options are:
-	# * <tt>:port</tt>  - Port which the server listen on (default: 10001)
-	# * <tt>:host</tt>  - IP which the server listen on (default: 127.0.0.1)
-	# * <tt>:max_connection</tt>  - Maximum number of simultaneous connection to server (default: 4, minimum: 1)
-	# * <tt>:min_listener</tt>  - Minimum number of listener thread (default: 1, minimum: 0)
-	# * <tt>:verbose</tt>  - Set at true to enable logging (default: false). Verbose mode can slow down the server
-	# * <tt>:debug</tt>  - Set at true to enable debuging (default: false)
-	# * <tt>:stdlog</tt>  - IO for log and error output (default: $stderr)
+	# * <tt>:port</tt>  - Port which the server listen on (default: 10001).
+	# * <tt>:host</tt>  - IP which the server listen on (default: 127.0.0.1).
+	# * <tt>:max_connection</tt>  - Maximum number of simultaneous connection to server (default: 4, minimum: 1).
+	# * <tt>:min_listener</tt>  - Minimum number of listener thread (default: 1, minimum: 0).
+	# * <tt>:verbose</tt>  - Set at true to enable logging (default: false). Verbose mode can slow down the server.
+	# * <tt>:debug</tt>  - Set at true to enable debuging (default: false).
+	# * <tt>:stdlog</tt>  - IO for log and error output (default: $stderr).
 	def initialize(options = {})
 		options = DEFAULT_OPTIONS.merge(options)
 
@@ -115,12 +115,12 @@ class TServer
 		join if joined
 	end
 
-	# Join the main thread of the server and return only when the server is stopped
+	# Join the main thread of the server and return only when the server is stopped.
 	def join
 		@tcp_server_thread.join if @tcp_server_thread
 	end
 
-	# Stop imediatly the server (all established connection is interrupted)
+	# Stop imediatly the server (all established connection is interrupted).
 	def stop
 		@tcp_server.close rescue nil
 		@tcp_server_thread.exit rescue nil
@@ -129,7 +129,7 @@ class TServer
 	end
 
 	# Gracefull shutdown, the server can't accept new connection but wait current
-	# connection before exit
+	# connection before exit.
 	def shutdown
 		return true if @shutdown
 		@shutdown = true
@@ -146,42 +146,49 @@ class TServer
 		true
 	end
 
-	# Return the number of spawned listener
+	# Return the number of spawned listener.
 	def listener
 		@listener.synchronize { @listener.size }
 	end
 
-	# Return the number of spawned listener waiting on new connection
+	# Return the number of spawned listener waiting on new connection.
 	def waiting_listener
 		@connections.num_waiting
 	end
 
 	# Returns an array of arrays, where each subarray contains:
-	# * address family: A string like "AF_INET" or "AF_INET6" if it is one of the commonly used families, the string "unknown:#" (where '#' is the address family number) if it is not one of the common ones. The strings map to the Socket::AF_* constants
-	# * port: The port number
-	# * name: Either the canonical name from looking the address up in the DNS, or the address in presentation format
-	# * address: The address in presentation format (a dotted decimal string for IPv4, a hex string for IPv6)
+	# * address family: A string like "AF_INET" or "AF_INET6" if it is one of the commonly used families, the string "unknown:#" (where '#' is the address family number) if it is not one of the common ones. The strings map to the Socket::AF_* constants.
+	# * port: The port number.
+	# * name: Either the canonical name from looking the address up in the DNS, or the address in presentation format.
+	# * address: The address in presentation format (a dotted decimal string for IPv4, a hex string for IPv6).
 	def connections
 		@listener.synchronize { @listener.collect{|l| l[:conn].peeraddr} }
 	end
 
-	# Return true if server running
+	# Return true if server running.
 	def started?
 		@listener.synchronize { !@tcp_server_thread.nil? && @listener.size >= @min_listener }
 	end
 
-	# Return true if server dont running
+	# Return true if server dont running.
 	def stopped?
 		!started?
 	end
 
 	protected
 
-		# Override this method to implement a server, conn is a TCPSocket instance
+		# Override this method to implement a server, conn is a TCPSocket instance.
+		# Connection is closed when this method return, use loop if you want
+		# persistant connection.
+		#
+		# Exemple (send 'Hello world!' string to client):
+		#	def process(conn)
+		#		conn.puts 'Hello world!'
+		#	end
 		def process(conn)
 		end
 
-		# Send error backtrace to stdlog output
+		# Send error backtrace to stdlog output.
 		def error(e)
 			if @stdlog
 				@stdlog.puts '---'
@@ -191,7 +198,7 @@ class TServer
 			end
   	end
 
-		# Send message to stdlog output
+		# Send message to stdlog output.
 		def log(message)
 			if @stdlog
 				@stdlog.puts("[#{Time.now}] #{self.class.to_s} #{@host}:#{@port} %s" % message)

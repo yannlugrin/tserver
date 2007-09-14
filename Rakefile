@@ -55,9 +55,9 @@ spec = Gem::Specification.new do |s|
 end
 
 Rake::GemPackageTask.new(spec) do |pkg|
-    pkg.need_tar = true
+	pkg.need_tar = true
 end
 
 task :create_gem => "pkg/#{spec.name}-#{spec.version}.gem" do
-    puts 'generated latest version'
+	puts 'generated latest version'
 end
