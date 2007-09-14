@@ -6,6 +6,8 @@ require 'rubygems'
 
 require  File.join(File.dirname(__FILE__), 'lib', 'tserver')
 
+VERSION = '0.1.0'
+
 task :default => ['test']
 
 # Test
@@ -21,7 +23,7 @@ end
 
 # Doc
 Rake::RDocTask.new do |rdoc|
-	rdoc.title = 'TServer - RDOC Documentation'
+	rdoc.title = "TServer - #{VERSION} - RDOC Documentation"
 	rdoc.main = 'README'
 
 	rdoc.options << '--inline-source'
@@ -36,7 +38,7 @@ spec = Gem::Specification.new do |s|
 	s.platform  =   Gem::Platform::RUBY
 
 	s.name			=	'tserver'
-	s.version		=	'0.1.0'
+	s.version		=	VERSION
 
 	s.author		=	'Yann Lugrin'
 	s.email			=	'yann.lugrin@sans-savoir.net'
