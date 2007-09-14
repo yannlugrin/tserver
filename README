@@ -15,19 +15,19 @@ wait onb established connection before realy stop).
 
 == Example
 
-This exemple can re
+This exemple can receive simple string from telnet connection
 
   require 'tserver'
 
   # A server can return
-  class ExempleServer
+  class ExempleServer < TServer
     def serve(conn)
       conn.each do |line|
         break if line =~ /(quit|exit|close)/
 
         log '> ' + line.chomp
         conn.puts Time.now.to_s + '> ' + line.chomp
- 			end
+      end
     end
   end
 
