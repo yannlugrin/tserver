@@ -177,14 +177,20 @@ class TServer
 
 	protected
 
-		# Override this method to implement a server, conn is a TCPSocket instance.
-		# Connection is closed when this method return, use loop if you want
-		# persistant connection.
+		# Override this method to implement a server, conn is a TCPSocket instance and
+		# is closed when this method return
 		#
 		# Exemple (send 'Hello world!' string to client):
 		#	def process(conn)
 		#		conn.puts 'Hello world!'
 		#	end
+		#
+		# Use loop if you want persistant connection, if you wait on client input, use
+		# Timeout#timeout with TCPSocket.read or test @shutdown with IO#select to exit
+		# loop when server shutdown.
+		#--
+		# TODO: Exemple with "Timeout#timeout / TCPSocket.read" and  "@shutdown / IO#select"
+		#++
 		def process(conn)
 		end
 
