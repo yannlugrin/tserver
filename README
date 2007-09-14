@@ -1,0 +1,53 @@
+= TServer
+
+Author::        Yann Lugrin (mailto:yann.lugrin@sans-savoir.net)
+Copyright:: 		Copyright (c) 2007 Yann Lugrin
+Licence::       MIT[link://files/LICENSE.html]
+
+This librarie implements a persistant multithread TCP server, it is alternative
+to 'gserver'[http://ruby-doc.org/stdlib/libdoc/gserver/rdoc/index.html] standard
+librarie. TServer is designed to be inherited by your custom server class. The
+server can accepts multiple simultaneous connections from clients, can be
+configured to have a maximum connection and a minimum permanent listener thread.
+Can be imediatly stopped or gracefull shutdown (dont accept new connection but
+wait onb established connection before realy stop).
+
+== Example
+
+This exemple can re
+
+  require 'tserver'
+
+  # A server can return
+  class ExempleServer
+    def serve(conn)
+      conn.each do |line|
+        break if line =~ /(quit|exit|close)/
+
+        log '> ' + line.chomp
+        conn.puts Time.now.to_s + '> ' + line.chomp
+ 			end
+    end
+  end
+
+  # Create the server with logging enabled (server activity is displayed
+  # in console with received data)
+  server = ExempleServer.new
+  server.verbose = true
+
+  # Shutdown the server when script is interupted
+  Signal.trap('SIGINT') do
+    server.shutdown
+  end
+
+  # Start the server (joined is set to true and the line wait on server
+  # thread before continue, the default values of this parameter is set to
+  # false, you can also use 'server.join' after server.start)
+  server.start(true)
+
+  # Now you can open a telnet connection to 127.0.0.1:10001 (telnet 127.0.0.1 10001)
+  # and send text (use exit to close the connection)
+
+
+
+
