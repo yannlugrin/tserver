@@ -27,7 +27,7 @@ require "thread"
 require 'thwait'
 require 'monitor'
 
-# Show README[link://files/README.html] for more information and show an implementation exemple
+# Show README[link://files/README.html] for more information and exemple
 class TServer
 	# Return or change the status (value can be set at 'true' or 'false')
 	attr_accessor :verbose, :debug
@@ -132,11 +132,11 @@ class TServer
 	# connection before exit
 	def shutdown
 		return true if @shutdown
+		@shutdown = true
 		log("server:#{Thread.current} shutdown") if @verbose
 
 		@tcp_server.close rescue nil
 		Thread.pass until @connections.empty?
-		@shutdown = true
 
 		@listener.size.times { @connections << false }
 
@@ -208,7 +208,7 @@ class TServer
 					loop do
 						begin
 							log("listener:#{Thread.current} wait on connection") if @verbose
-							conn = Thread.current[:conn] = @shutdown ? Thread.exit : @connections.pop
+							conn = Thread.current[:conn] = (@connections.empty? && (@shutdown || @connections.num_waiting >= @min_listener)) ? Thread.exit : @connections.pop
 
 							if conn.is_a?(TCPSocket)
 								addr = conn.peeraddr if @verbose
@@ -227,7 +227,6 @@ class TServer
 						end
 
 						@listener.synchronize { @listener_cond.signal }
-						Thread.exit if @connections.num_waiting >= @min_listener
 					end
 				ensure
 					@listener.synchronize { @listener.delete(Thread.current) }
