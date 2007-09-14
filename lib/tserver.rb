@@ -178,7 +178,7 @@ class TServer
 	protected
 
 		# Override this method to implement a server, conn is a TCPSocket instance and
-		# is closed when this method return
+		# is closed when this method return.
 		#
 		# Exemple (send 'Hello world!' string to client):
 		#	def process(conn)
