@@ -6,7 +6,7 @@ require 'rubygems'
 
 require  File.join(File.dirname(__FILE__), 'lib', 'tserver')
 
-TSERVER_VERSION = '0.1.0'
+TSERVER_VERSION = '0.1.1'
 
 task :default => ['test']
 
