@@ -34,10 +34,12 @@ class TestClient
 
 	def connect
 		@socket = TCPSocket.new(@host, @port)
+		Thread.pass
 	end
 
 	def close
 		@socket.close if @socket
+		Thread.pass
 	end
 
 	def send(string)
@@ -128,20 +130,9 @@ class TServerTest < Test::Unit::TestCase
 
 	def test_should_be_started
 		# Start a server
-		assert_nothing_raised do
-			Timeout.timeout(2) do
-				@server.start
-			end
-		end
+		assert_not_timeout('Server do not start') { @server.start }
 		assert @server.started?
 		assert !@server.stopped?
-
-		# Wait on listener
-		assert_nothing_raised 'Listener isn\'t spawned' do
-			Timeout.timeout(2) do
-				sleep 0.1 while @server.waiting_listener < @server.min_listener
-			end
-		end
 
 		# Listener is spawned
 		assert_equal @server.min_listener, @server.listener
@@ -150,25 +141,13 @@ class TServerTest < Test::Unit::TestCase
 
 	def test_should_be_stopped
 		# Stop a non started server
-		assert_nothing_raised do
-			Timeout.timeout(2) do
-				assert @server.stop
-			end
-		end
+		assert_not_timeout('Server do not stop') { @server.stop }
 
 		# Start the server
-		assert_nothing_raised do
-			Timeout.timeout(2) do
-				@server.start
-			end
-		end
+		assert_not_timeout('Server do not start') { @server.start }
 
 		# Stop the server
-		assert_nothing_raised do
-			Timeout.timeout(2) do
-				assert @server.stop
-			end
-		end
+		assert_not_timeout('Server do not stop'){ @server.stop }
 
 		# The server is stopped and dont accept connection
 		assert !@server.started?
@@ -180,24 +159,11 @@ class TServerTest < Test::Unit::TestCase
 
 	def test_should_be_stopped_with_established_connection
 		# Start the server and a client
-		assert_nothing_raised do
-			@server.start
-			@client.connect
-		end
+		assert_not_timeout('Server do not start') { @server.start }
+		assert_not_timeout('Client do not connect') { @client.connect }
 
 		# Shutdown the server
-		assert_nothing_raised do
-			Timeout.timeout(2) do
-				assert @server.stop
-			end
-		end
-
-		# Wait on listener
-		assert_nothing_raised 'Listener isn\'t terminated' do
-			Timeout.timeout(2) do
-				sleep 0.1 while @server.listener > 0
-			end
-		end
+		assert_not_timeout('Server do not stop') { @server.stop }
 
 		# The server is stopped and dont accept connection
 		assert !@server.started?
@@ -209,25 +175,13 @@ class TServerTest < Test::Unit::TestCase
 
 	def test_should_be_shutdown
 		# Shutdown a non started server
-		assert_nothing_raised do
-			Timeout.timeout(2) do
-				assert @server.shutdown
-			end
-		end
+		assert_not_timeout('Server do not shutdown') { @server.shutdown }
 
 		# Start the server
-		assert_nothing_raised 'Server isn\'t started' do
-			Timeout.timeout(2) do
-				@server.start
-			end
-		end
+		assert_not_timeout('Server do not start') { @server.start }
 
 		# Shutdown the server
-		assert_nothing_raised 'Server isn\'t shutdowned' do
-			Timeout.timeout(2) do
-				assert @server.shutdown
-			end
-		end
+		assert_not_timeout('Server do not shutdown') { @server.shutdown }
 
 		# The server is stopped and dont accept connection
 		assert !@server.started?
@@ -237,71 +191,36 @@ class TServerTest < Test::Unit::TestCase
 		end
 
 		# Shutdown a shutdowned server
-		assert_nothing_raised 'Server isn\'t shutdowned' do
-			Timeout.timeout(2) do
-				assert @server.shutdown
-			end
-		end
+		assert_not_timeout('Server do not shutdown') { @server.shutdown }
 	end
 
 	def test_should_be_shutdown_with_established_connection
-		# Start the server and a client
-		assert_nothing_raised 'Server and client can\'t start' do
-			Timeout.timeout(2) do
-				@server.start
-				@client.connect
-			end
-		end
-
-		# Wait on listener
-		assert_nothing_raised 'Connection isn\'t established' do
-			Timeout.timeout(2) do
-				sleep 0.1 while @server.waiting_listener > 0
-			end
-		end
+		# Start server and client
+		assert_not_timeout('Server do not start') { @server.start }
+		assert_not_timeout('Client do not connect') { @client.connect }
 
 		# Shutdown the server
 		shutdown_thread = nil
 		shutdown_thread = Thread.new do
-			assert_nothing_raised 'Server can\'t shutdown' do
-				Timeout.timeout(2) do
-					assert @server.shutdown
-				end
-			end
+			assert_not_timeout('Server do not shutdown') { @server.shutdown }
 		end
 
-		# The server isn't stopped because a client is connected'
-		assert @server.started?, 'Server isn\'t started'
-		assert !@server.stopped?, 'Server is stopped'
+		# The server isn't stopped because a connection is established
+		assert @server.started?
+		assert !@server.stopped?
 
-		# The client work
-		assert_nothing_raised 'Client can\'t communicate' do
-			Timeout.timeout(2) do
-				@client.send 'test string'
-				assert_equal 'test string', SERVER_READER.pop.chomp
-				assert_equal 'test string', @client.receive
-			end
+		# The client can communicate with server
+		assert_not_timeout 'Client do not communicate with server' do
+			@client.send 'test string'
+			assert_equal 'test string', SERVER_READER.pop.chomp
+			assert_equal 'test string', @client.receive
 		end
 
-		# Close the client
-		assert_nothing_raised 'Client can\'t close' do
-			Timeout.timeout(2) do
-				@client.close
-			end
-		end
+		# Close client
+		assert_not_timeout('Client do not close connection') { @client.close }
 
-		# Wait on listener
-		assert_nothing_raised 'Listener isn\'t terminated' do
-			Timeout.timeout(2) do
-				sleep 0.1 while @server.listener > 0
-			end
-		end
-
-		assert_nothing_raised 'Shutdown isn\'t terminated' do
-			Timeout.timeout(2) do
-				shutdown_thread.join
-			end
-		end
+		# Wait server shutdown
+		assert_not_timeout('Server do not shutdown') { shutdown_thread.join }
 
 		# The server is stopped and dont accept connection
 		assert !@server.started?
@@ -312,16 +231,16 @@ class TServerTest < Test::Unit::TestCase
 	end
 
 	def test_should_be_receive_connection
-		# Start the server and a client
-		assert_nothing_raised do
-			@server.start
-			@client.connect
-		end
+		# Start server and client
+		assert_not_timeout('Server do not start') { @server.start }
+		assert_not_timeout('Client do not connect') { @client.connect }
 
 		# Client can communicate with the server
-		@client.send 'test string'
-		assert_equal 'test string', SERVER_READER.pop.chomp
-		assert_equal 'test string', @client.receive
+		assert_not_timeout 'Client do not communicate with server' do
+			@client.send 'test string'
+			assert_equal 'test string', SERVER_READER.pop.chomp
+			assert_equal 'test string', @client.receive
+		end
 	end
 
 	def test_should_be_receive_multiple_connection
@@ -331,58 +250,44 @@ class TServerTest < Test::Unit::TestCase
 		@client_4 = TestClient.new(@server.host, @server.port)
 		@client_5 = TestClient.new(@server.host, @server.port)
 
-		# Start the server and a clients
-		assert_nothing_raised 'Server and clients isn\'t started' do
-			@server.start
-			@client.connect
-			@client_2.connect
-			@client_3.connect
-			@client_4.connect
-			@client_5.connect
-		end
+		# Start server and clients
+		assert_not_timeout('Server do not start') { @server.start }
+		assert_not_timeout('Client do not connect') { @client.connect }
+		assert_not_timeout('Client do not connect') { @client_2.connect }
+		assert_not_timeout('Client do not connect') { @client_3.connect }
+		assert_not_timeout('Client do not connect') { @client_4.connect }
+		assert_not_timeout('Client do not connect') { @client_5.connect }
 
-		# Wait on listener (only 4 listerner for 5 client)
-		assert_nothing_raised 'Listener isn\'t spawned' do
-			Timeout.timeout(2) do
-				sleep 0.1 while @server.listener < 4 || @server.waiting_listener > 0
-			end
-		end
+		# Only 4 listerner for 5 client
 		assert_equal 0, @server.waiting_listener
 		assert_equal 4, @server.listener
 
 		# All clients send data to server
-		@client.send 'test string 1'
-		@client_2.send 'test string 2'
-		@client_3.send 'test string 3'
-		@client_4.send 'test string 4'
-		@client_5.send 'test string 5'
+		assert_not_timeout('Client do not communicate with server') { @client.send 'test string 1' }
+		assert_not_timeout('Client do not communicate with server') { @client_2.send 'test string 2' }
+		assert_not_timeout('Client do not communicate with server') { @client_3.send 'test string 3' }
+		assert_not_timeout('Client do not communicate with server') { @client_4.send 'test string 4' }
+		assert_not_timeout('Client do not communicate with server') { @client_5.send 'test string 5' }
 
 		# Server receive data from 4 clients (but the last client waiting)
 		1.upto(4) do |i|
-			assert_match(/test string [1-4]/, SERVER_READER.pop)
+			assert_not_timeout 'Do not receive data from client' do
+				assert_match(/test string [1-4]/, SERVER_READER.pop)
+			end
 		end
-		assert SERVER_READER.empty?
+		assert SERVER_READER.empty?, 'Server receive data from client 5'
 
-		# Close a client
-		@client.close
+		# Close client
+		assert_not_timeout('Client do not close connection') { @client.close }
 
 		# Server can recerive data from last client
-		assert_equal 'test string 5', SERVER_READER.pop
+		assert_not_timeout 'Do not receive data from client' do
+			assert_equal 'test string 5', SERVER_READER.pop
+		end
 
 		# Close all clients [<client>, <number of listener after close>]
-		[[@client_2, 4], [@client_3, 3], [@client_4, 2], [@client_5, 1]].each do |client, num_listener|
-			client.close
-
-			# Wait on listener (listener is terminated if num_listener waiting connection)
-			assert_nothing_raised 'Listener isn\'t terminated' do
-				Timeout.timeout(2) do
-					sleep 0.1 while @server.listener > num_listener
-				end
-
-				Timeout.timeout(2) do
-					sleep 0.1 while @server.waiting_listener < @server.min_listener
-				end
-			end
+		[@client_2, @client_3, @client_4, @client_5].each do |client|
+			assert_not_timeout('Client do not close connection') { client.close }
 		end
 
 		# min_listener waiting connection
@@ -393,29 +298,23 @@ class TServerTest < Test::Unit::TestCase
 	def test_should_works_with_min_listener_at_0
 		@server = TestServer.new(:min_listener => 0)
 
-		# Start the server and a client
-		assert_nothing_raised do
-			@server.start
-			@client.connect
-		end
+		# Start server and client
+		assert_not_timeout('Server do not start') { @server.start }
+		assert_not_timeout('Client do not connect') { @client.connect }
 
 		# Client can communicate with the server
-		@client.send 'test string'
-		assert_nothing_raised 'Listener do not respond' do
-			Timeout.timeout(2) do
-				assert_equal 'test string', SERVER_READER.pop.chomp
-				assert_equal 'test string', @client.receive
-			end
+		assert_not_timeout 'Client do not communicate with server' do
+			@client.send 'test string'
+			assert_equal 'test string', SERVER_READER.pop.chomp
+			assert_equal 'test string', @client.receive
 		end
 
-		# Close a client
-		@client.close
+		# Close client
+		assert_not_timeout('Client do not close connection') { @client.close }
 
 		# Wait on listener
-		assert_nothing_raised 'Listener isn\'t terminated' do
-			Timeout.timeout(2) do
-				sleep 0.1 while @server.listener > 0
-			end
+		assert_not_timeout 'Listener do not exit' do
+			sleep 0.1 while @server.listener > 0
 		end
 
 		# min_listener
@@ -424,21 +323,22 @@ class TServerTest < Test::Unit::TestCase
 	end
 
 	def test_should_have_connection_list
-		# Start the server and a client
-		assert_nothing_raised do
-			@server.start
-			@client.connect
-		end
-
-		# Wait on connection
-		assert_nothing_raised 'Connection isn\'t established' do
-			Timeout.timeout(2) do
-				sleep 0.1 while @server.connections.first == nil
-			end
-		end
+		# Start server and client
+		assert_not_timeout('Server do not start') { @server.start }
+		assert_not_timeout('Client do not connect') { @client.connect }
 
 		assert_equal 'AF_INET', @server.connections.first[0]
 		assert_match(/^\d+$/, @server.connections.first[1].to_s)
 		assert_match(/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/, @server.connections.first[3])
 	end
+
+	protected
+
+		def assert_not_timeout(msg = 'Timeout')
+			assert_nothing_raised(msg) do
+				Timeout.timeout(5) do
+					yield
+				end
+			end
+		end
 end

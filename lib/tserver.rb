@@ -106,8 +106,6 @@ class TServer
 			ensure
 				@tcp_server = nil
 				@tcp_server_thread = nil
-				@connections.clear
-				@listener.synchronize { @listener.clear }
 
 				log("server:#{Thread.current} is stopped") if @verbose
 			end
@@ -170,12 +168,12 @@ class TServer
 
 	# Return true if server running.
 	def started?
-		!stopped?
+		@listener.synchronize { !@tcp_server_thread.nil? || @listener.size > 0 }
 	end
 
 	# Return true if server dont running.
 	def stopped?
-		@tcp_server_thread.nil?
+		!started?
 	end
 
 	protected
