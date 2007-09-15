@@ -104,6 +104,7 @@ class TServer
 					spawn_listener if !@connections.empty? && @connections.num_waiting == 0
 				end
 			ensure
+				@tcp_server = nil
 				@tcp_server_thread = nil
 				@connections.clear
 				@listener.synchronize { @listener.clear }
@@ -113,6 +114,7 @@ class TServer
 		end
 
 		join if joined
+		true
 	end
 
 	# Join the main thread of the server and return only when the server is stopped.
@@ -123,6 +125,7 @@ class TServer
 	# Stop imediatly the server (all established connection is interrupted).
 	def stop
 		@tcp_server.close rescue nil
+		@listener.synchronize { @listener.each {|l| l.exit} }
 		@tcp_server_thread.exit rescue nil
 
 		true
@@ -167,12 +170,12 @@ class TServer
 
 	# Return true if server running.
 	def started?
-		@listener.synchronize { !@tcp_server_thread.nil? && @listener.size >= @min_listener }
+		!stopped?
 	end
 
 	# Return true if server dont running.
 	def stopped?
-		!started?
+		@tcp_server_thread.nil?
 	end
 
 	protected

@@ -4,11 +4,11 @@ require 'thread'
 
 require File.expand_path(File.dirname(__FILE__) + '/../lib/tserver')
 
+SERVER_READER = Queue.new
+
 # The test server can send received data to an IO
 class TestServer < TServer
-	def initialize(options = {})
-		@test_io = options.delete(:io) || $stderr
-
+	def initialize(options= {})
 		super(options)
 	end
 
@@ -16,9 +16,9 @@ class TestServer < TServer
 
 		# Send received data on IO and return the data to client
 		def process(conn)
-			conn.each do |line|
-				@test_io.puts line.chomp
-				conn.puts line.chomp
+			loop do
+				SERVER_READER << string = conn.readline.chomp
+				conn.puts string
 			end
 		end
 end
@@ -42,6 +42,7 @@ class TestClient
 
 	def send(string)
 		@socket.puts string
+		Thread.pass
 	end
 
 	def receive
@@ -51,9 +52,9 @@ end
 
 class TServerTest < Test::Unit::TestCase
 	def setup
-		@server_conn_reader, @server_conn_writer = IO.pipe
+		SERVER_READER.clear
 
-		@server = TestServer.new(:io => @server_conn_writer)
+		@server = TestServer.new
 		@client = TestClient.new(@server.host, @server.port)
 	end
 
@@ -62,8 +63,6 @@ class TServerTest < Test::Unit::TestCase
 
 		@server.stop rescue nil
 		@server.join rescue nil # join the server to ensure is stopped before start the next test
-		@server_conn_reader.close rescue nil
-		@server_conn_writer.close rescue nil
 	end
 
 	def test_should_can_create_with_default_values
@@ -174,7 +173,7 @@ class TServerTest < Test::Unit::TestCase
 		# The server is stopped and dont accept connection
 		assert !@server.started?
 		assert @server.stopped?
-		assert_raise(Errno::ECONNREFUSED) do
+		assert_raise(RUBY_PLATFORM =~ /win32/ ? Errno::EBADF : Errno::ECONNREFUSED) do
 			@client.connect
 		end
 	end
@@ -203,7 +202,7 @@ class TServerTest < Test::Unit::TestCase
 		# The server is stopped and dont accept connection
 		assert !@server.started?
 		assert @server.stopped?
-		assert_raise(Errno::ECONNREFUSED) do
+		assert_raise(RUBY_PLATFORM =~ /win32/ ? Errno::EBADF : Errno::ECONNREFUSED) do
 			@client.connect
 		end
 	end
@@ -233,7 +232,7 @@ class TServerTest < Test::Unit::TestCase
 		# The server is stopped and dont accept connection
 		assert !@server.started?
 		assert @server.stopped?
-		assert_raise(Errno::ECONNREFUSED) do
+		assert_raise(RUBY_PLATFORM =~ /win32/ ? Errno::EBADF : Errno::ECONNREFUSED) do
 			@client.connect
 		end
 
@@ -247,32 +246,49 @@ class TServerTest < Test::Unit::TestCase
 
 	def test_should_be_shutdown_with_established_connection
 		# Start the server and a client
-		assert_nothing_raised do
-			@server.start
-			@client.connect
+		assert_nothing_raised 'Server and client can\'t start' do
+			Timeout.timeout(2) do
+				@server.start
+				@client.connect
+			end
+		end
+
+		# Wait on listener
+		assert_nothing_raised 'Connection isn\'t established' do
+			Timeout.timeout(2) do
+				sleep 0.1 while @server.waiting_listener > 0
+			end
 		end
 
 		# Shutdown the server
 		shutdown_thread = nil
-		assert_nothing_raised 'Server isn\'t shutdowned' do
-			Timeout.timeout(2) do
-				shutdown_thread = Thread.new do
+		shutdown_thread = Thread.new do
+			assert_nothing_raised 'Server can\'t shutdown' do
+				Timeout.timeout(2) do
 					assert @server.shutdown
 				end
 			end
 		end
 
 		# The server isn't stopped because a client is connected'
-		assert @server.started?
-		assert !@server.stopped?
+		assert @server.started?, 'Server isn\'t started'
+		assert !@server.stopped?, 'Server is stopped'
 
 		# The client work
-		@client.send 'test string'
-		assert_equal 'test string', @server_conn_reader.readline.chomp
-		assert_equal 'test string', @client.receive
+		assert_nothing_raised 'Client can\'t communicate' do
+			Timeout.timeout(2) do
+				@client.send 'test string'
+				assert_equal 'test string', SERVER_READER.pop.chomp
+				assert_equal 'test string', @client.receive
+			end
+		end
 
 		# Close the client
-		@client.close
+		assert_nothing_raised 'Client can\'t close' do
+			Timeout.timeout(2) do
+				@client.close
+			end
+		end
 
 		# Wait on listener
 		assert_nothing_raised 'Listener isn\'t terminated' do
@@ -280,12 +296,17 @@ class TServerTest < Test::Unit::TestCase
 				sleep 0.1 while @server.listener > 0
 			end
 		end
-		shutdown_thread.join
+
+		assert_nothing_raised 'Shutdown isn\'t terminated' do
+			Timeout.timeout(2) do
+				shutdown_thread.join
+			end
+		end
 
 		# The server is stopped and dont accept connection
 		assert !@server.started?
 		assert @server.stopped?
-		assert_raise(Errno::ECONNREFUSED) do
+		assert_raise(RUBY_PLATFORM =~ /win32/ ? Errno::EBADF : Errno::ECONNREFUSED) do
 			@client.connect
 		end
 	end
@@ -299,7 +320,7 @@ class TServerTest < Test::Unit::TestCase
 
 		# Client can communicate with the server
 		@client.send 'test string'
-		assert_equal 'test string', @server_conn_reader.readline.chomp
+		assert_equal 'test string', SERVER_READER.pop.chomp
 		assert_equal 'test string', @client.receive
 	end
 
@@ -323,7 +344,7 @@ class TServerTest < Test::Unit::TestCase
 		# Wait on listener (only 4 listerner for 5 client)
 		assert_nothing_raised 'Listener isn\'t spawned' do
 			Timeout.timeout(2) do
-				sleep 0.1 while @server.listener < 4
+				sleep 0.1 while @server.listener < 4 || @server.waiting_listener > 0
 			end
 		end
 		assert_equal 0, @server.waiting_listener
@@ -337,22 +358,16 @@ class TServerTest < Test::Unit::TestCase
 		@client_5.send 'test string 5'
 
 		# Server receive data from 4 clients (but the last client waiting)
-		1.upto(5) do |i|
-			result = IO.select([@server_conn_reader], nil, nil, 0.1)
-
-			if i < 5
-				assert_match(/test string [1-4]/, result.first.first.readline.chomp)
-			else
-				assert_nil result
-			end
+		1.upto(4) do |i|
+			assert_match(/test string [1-4]/, SERVER_READER.pop)
 		end
+		assert SERVER_READER.empty?
 
 		# Close a client
 		@client.close
 
 		# Server can recerive data from last client
-		result = IO.select([@server_conn_reader], nil, nil, 0.1)
-		assert_equal 'test string 5', result.first.first.readline.chomp
+		assert_equal 'test string 5', SERVER_READER.pop
 
 		# Close all clients [<client>, <number of listener after close>]
 		[[@client_2, 4], [@client_3, 3], [@client_4, 2], [@client_5, 1]].each do |client, num_listener|
@@ -376,7 +391,7 @@ class TServerTest < Test::Unit::TestCase
 	end
 
 	def test_should_works_with_min_listener_at_0
-		@server = TestServer.new(:min_listener => 0, :io => @server_conn_writer)
+		@server = TestServer.new(:min_listener => 0)
 
 		# Start the server and a client
 		assert_nothing_raised do
@@ -388,7 +403,7 @@ class TServerTest < Test::Unit::TestCase
 		@client.send 'test string'
 		assert_nothing_raised 'Listener do not respond' do
 			Timeout.timeout(2) do
-				assert_equal 'test string', @server_conn_reader.readline.chomp
+				assert_equal 'test string', SERVER_READER.pop.chomp
 				assert_equal 'test string', @client.receive
 			end
 		end
