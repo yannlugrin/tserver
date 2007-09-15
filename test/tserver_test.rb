@@ -161,6 +161,7 @@ class TServerTest < Test::Unit::TestCase
 		# Start the server and a client
 		assert_not_timeout('Server do not start') { @server.start }
 		assert_not_timeout('Client do not connect') { @client.connect }
+		wait_on_listener
 
 		# Shutdown the server
 		assert_not_timeout('Server do not stop') { @server.stop }
@@ -198,6 +199,7 @@ class TServerTest < Test::Unit::TestCase
 		# Start server and client
 		assert_not_timeout('Server do not start') { @server.start }
 		assert_not_timeout('Client do not connect') { @client.connect }
+		wait_on_listener
 
 		# Shutdown the server
 		shutdown_thread = nil
@@ -218,6 +220,7 @@ class TServerTest < Test::Unit::TestCase
 
 		# Close client
 		assert_not_timeout('Client do not close connection') { @client.close }
+		wait_on_listener
 
 		# Wait server shutdown
 		assert_not_timeout('Server do not shutdown') { shutdown_thread.join }
@@ -234,6 +237,7 @@ class TServerTest < Test::Unit::TestCase
 		# Start server and client
 		assert_not_timeout('Server do not start') { @server.start }
 		assert_not_timeout('Client do not connect') { @client.connect }
+		wait_on_listener
 
 		# Client can communicate with the server
 		assert_not_timeout 'Client do not communicate with server' do
@@ -257,6 +261,7 @@ class TServerTest < Test::Unit::TestCase
 		assert_not_timeout('Client do not connect') { @client_3.connect }
 		assert_not_timeout('Client do not connect') { @client_4.connect }
 		assert_not_timeout('Client do not connect') { @client_5.connect }
+		wait_on_listener
 
 		# Only 4 listerner for 5 client
 		assert_equal 0, @server.waiting_listener
@@ -279,6 +284,7 @@ class TServerTest < Test::Unit::TestCase
 
 		# Close client
 		assert_not_timeout('Client do not close connection') { @client.close }
+		wait_on_listener
 
 		# Server can recerive data from last client
 		assert_not_timeout 'Do not receive data from client' do
@@ -289,6 +295,7 @@ class TServerTest < Test::Unit::TestCase
 		[@client_2, @client_3, @client_4, @client_5].each do |client|
 			assert_not_timeout('Client do not close connection') { client.close }
 		end
+		wait_on_listener
 
 		# min_listener waiting connection
 		assert_equal @server.min_listener, @server.listener
@@ -297,6 +304,7 @@ class TServerTest < Test::Unit::TestCase
 
 	def test_should_works_with_min_listener_at_0
 		@server = TestServer.new(:min_listener => 0)
+		assert_equal 0, @server.min_listener
 
 		# Start server and client
 		assert_not_timeout('Server do not start') { @server.start }
@@ -311,15 +319,11 @@ class TServerTest < Test::Unit::TestCase
 
 		# Close client
 		assert_not_timeout('Client do not close connection') { @client.close }
-
-		# Wait on listener
-		assert_not_timeout 'Listener do not exit' do
-			sleep 0.1 while @server.listener > 0
-		end
+		wait_on_listener
 
 		# min_listener
-		assert_equal 0, @server.listener
-		assert_equal 0, @server.waiting_listener
+		assert_equal @server.min_listener, @server.listener
+		assert_equal @server.min_listener, @server.waiting_listener
 	end
 
 	def test_should_have_connection_list
@@ -341,4 +345,11 @@ class TServerTest < Test::Unit::TestCase
 				end
 			end
 		end
+
+		def wait_on_listener
+			assert_not_timeout 'Listener do not exit' do
+				sleep 0.1 while @server.listener > @server.min_listener
+			end
+		end
+
 end
