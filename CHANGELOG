@@ -1,5 +1,7 @@
 *SVN*
 
+* Server.process do not have argument now
+* TServer.connection, TServer.connection_addr and TServer.terminate_listener? is available.
 * Reload method (terminate all exists listerners and spawn new without interupt service and established connection)
 * TServer.connections work when a listener don't have active connection
 * Testing server Logger output in './test.log'

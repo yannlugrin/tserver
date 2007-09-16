@@ -21,8 +21,8 @@ This exemple can receive simple string from telnet connection
 
   # A server can return
   class ExempleServer < TServer
-    def serve(conn)
-      conn.each do |line|
+    def serve
+      connection.each do |line|
         break if line =~ /(quit|exit|close)/
 
         log '> ' + line.chomp

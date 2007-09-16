@@ -16,10 +16,10 @@ class TestServer < TServer
 	protected
 
 		# Send received data on IO and return the data to client
-		def process(conn)
+		def process
 			loop do
-				SERVER_READER << string = conn.readline.chomp
-				conn.puts string
+				SERVER_READER << string = connection.readline.chomp
+				connection.puts string
 			end
 		end
 end

@@ -162,7 +162,7 @@ class TServer
 		end
 
 		listeners_to_exit.each do |listener|
-			listener[:conn].nil? ? listener.terminate : listener[:terminate] = true
+			listener[:connection].nil? ? listener.terminate : listener[:terminate] = true
 		end
 
 		Thread.exclusive do
@@ -190,7 +190,7 @@ class TServer
 	# * name: Either the canonical name from looking the address up in the DNS, or the address in presentation format.
 	# * address: The address in presentation format (a dotted decimal string for IPv4, a hex string for IPv6).
 	def connections
-		@listeners.synchronize { @listeners.collect{|l| l[:conn].nil? ? nil : l[:conn].peeraddr } }.compact
+		@listeners.synchronize { @listeners.collect{|l| l[:connection].nil? ? nil : l[:connection].peeraddr } }.compact
 	end
 
 	# Return true if server running.
@@ -206,17 +206,17 @@ class TServer
 	protected
 
 		# Override this method to implement a server, conn is a TCPSocket instance and
-		# is closed when this method return.
+		# is closed when this method return. Attribute 'connection' is available.
 		#
 		# Exemple (send 'Hello world!' string to client):
-		#	def process(conn)
-		#		conn.puts 'Hello world!'
+		#	def process
+		#		connection.puts 'Hello world!'
 		#	end
 		#
 		# For persistant connection, use loop and Timeout.timeout or Tserver.terminate_listener?
 		# to break (and terminate listener) when server shutdown or reload. If server stop,
 		# listener is killed but begin/ensure can be used to terminate current process.
-		def process(conn)
+		def process
 		end
 
 		# Callback (call when server is started)
@@ -278,14 +278,14 @@ class TServer
 		# Callback (call when a connection is established with listener)
 		def connection_established
 			@logger.info do
-				"client:#{conn_addr[1]} #{conn_addr[2]}<#{conn_addr[3]}> is connected to listener:#{Thread.current}"
+				"client:#{connection_addr[1]} #{connection_addr[2]}<#{connection_addr[3]}> is connected to listener:#{Thread.current}"
 			 end
 		end
 
 		# Callback (call when the connection with listener close normally)
 		def connection_normally_closed
 			@logger.info do
-				"client:#{conn_addr[1]} #{conn_addr[2]}<#{conn_addr[3]}> is disconnected from listener:#{Thread.current}"
+				"client:#{connection_addr[1]} #{connection_addr[2]}<#{connection_addr[3]}> is disconnected from listener:#{Thread.current}"
 			 end
 		end
 
@@ -293,7 +293,7 @@ class TServer
 		# reveive 'error' instance from rescue)
 		def connection_not_normally_closed(error)
 			@logger.warn do
-				"client:#{conn_addr[1]} #{conn_addr[2]}<#{conn_addr[3]}> make an error and is disconnected from listener:#{Thread.current}"
+				"client:#{connection_addr[1]} #{connection_addr[2]}<#{connection_addr[3]}> make an error and is disconnected from listener:#{Thread.current}"
 			end
 
 			@logger.debug do
@@ -311,20 +311,18 @@ class TServer
 					loop do
 						begin
 							listener_waiting_connection
-							conn = Thread.current[:conn] = (@connections.empty? && (terminate_listener? || @connections.num_waiting >= @min_listener)) ? Thread.exit : @connections.pop
+							self.connection = (@connections.empty? && (terminate_listener? || @connections.num_waiting >= @min_listener)) ? Thread.exit : @connections.pop
 
-							if conn.is_a?(TCPSocket)
+							if connection.is_a?(TCPSocket)
 								connection_established
-
-								process(conn)
-
+								process
 								connection_normally_closed
 							end
 						rescue => e
 							connection_not_normally_closed(e)
 						ensure
-							conn.close rescue nil
-							Thread.current[:conn] = nil
+							connection.close rescue nil
+							self.connection = nil
 						end
 
 						@listeners.synchronize { @listener_cond.signal }
@@ -338,13 +336,23 @@ class TServer
 			@listeners.synchronize { @listeners << listener }
 		end
 
+		# Set connection for current Thread
+		def connection=(conn) #:nodoc:
+			Thread.current[:connection] = conn
+		end
+
+		# Return connection of current listener thread (or nil)
+		def connection
+			Thread.current[:connection]
+		end
+
 		# Return array with information for current thread connection:
 		# * address family: A string like "AF_INET" or "AF_INET6" if it is one of the commonly used families, the string "unknown:#" (where '#' is the address family number) if it is not one of the common ones. The strings map to the Socket::AF_* constants.
 		# * port: The port number.
 		# * name: Either the canonical name from looking the address up in the DNS, or the address in presentation format.
 		# * address: The address in presentation format (a dotted decimal string for IPv4, a hex string for IPv6).
-		def conn_addr
-			Thread.current[:conn_addr] ||= (Thread.current[:conn].nil? ? [nil] * 4 : Thread.current[:conn].peeraddr)
+		def connection_addr
+			Thread.current[:connection_addr] ||= (Thread.current[:connection].nil? ? [nil] * 4 : Thread.current[:connection].peeraddr)
 		end
 
 		# Return true if server ask listener to exit (when shutdown or reload)

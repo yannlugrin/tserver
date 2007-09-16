@@ -27,13 +27,13 @@ end
 # Send quit, exit or close to close connection or
 # stop to kill server.
 class ExempleServer < TServer
-	def process(conn)
-		conn.each do |line|
+	def process
+		connection.each do |line|
 			stop if line =~ /stop/
 			break if line =~ /(quit|exit|close)/
 
 			puts '> ' + line.chomp
-			conn.puts Time.now.to_s + ' > ' + line.chomp
+			connection.puts Time.now.to_s + ' > ' + line.chomp
 		end
 	end
 end
