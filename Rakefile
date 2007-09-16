@@ -6,14 +6,14 @@ require 'rubygems'
 
 require  File.join(File.dirname(__FILE__), 'lib', 'tserver')
 
-TSERVER_VERSION = '0.1.1'
+TSERVER_VERSION = '0.2.0'
 
 task :default => ['test']
 
 # Test
 Rake::TestTask.new do |t|
-	t.libs << "test"
-	t.libs << "lib"
+	t.libs << 'test'
+	t.libs << 'lib'
 
 	t.test_files = FileList['test/*_test.rb']
 
@@ -22,7 +22,7 @@ Rake::TestTask.new do |t|
 end
 
 # Exemple server
-desc "Run 'test/exemple_server.rb', accept IP and PORT argument (default: 127.0.0.1 10001)"
+desc 'Run \'test/exemple_server.rb\', accept IP and PORT argument (default: 127.0.0.1 10001)'
 task :server do
 	require 'test\exemple_server'
 end

@@ -418,5 +418,4 @@ class TServerTest < Test::Unit::TestCase
 				sleep 0.1 until @server.connections.size == number
 			end
 		end
-
 end
