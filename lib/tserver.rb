@@ -31,9 +31,19 @@ require 'logger'
 # Show README[link://files/README.html] for implementation exemple.
 class TServer
 
-	# Current value of the attribute
-	attr_reader :port, :host, :max_connection, :min_listener
-	# Logger instance
+	# Server port (default: 10001).
+	attr_reader :port
+
+	# Server host (default: 127.0.0.1).
+	attr_reader :host
+
+	# Maximum simultaneous connection can be established with server (default: 4, minimum: 1).
+	attr_reader :max_connection
+
+	# Minimum listener permanently spawned (default: 1, minimum: 0).
+	attr_reader :min_listener
+
+	# Server logger instance (default level: Logger:WARN, default output: stderr).
 	attr_reader :logger
 
 	DEFAULT_OPTIONS = {
