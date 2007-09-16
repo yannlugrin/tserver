@@ -49,7 +49,3 @@ This exemple can receive simple string from telnet connection
 
   # Now you can open a telnet connection to 127.0.0.1:10001 (telnet 127.0.0.1 10001)
   # and send text (use exit to close the connection)
-
-
-
-

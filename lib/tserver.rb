@@ -28,7 +28,7 @@ require 'thwait'
 require 'monitor'
 require 'logger'
 
-# Show README[link://files/README.html] for more information and exemple.
+# Show README[link://files/README.html] for implementation exemple.
 class TServer
 
 	# Current value of the attribute
