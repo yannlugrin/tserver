@@ -1,4 +1,4 @@
-*SVN*
+= SVN
 
 * Server.process do not have argument now
 * TServer.connection, TServer.connection_addr and TServer.terminate_listener? is available.
@@ -10,10 +10,10 @@
 * Add multiple callback to log event, can be overrited
 * Use Logger for logging implementation
 
-*0.1.1*
+= 0.1.1
 
 * Tests pass with 'win32' platform
 
-*0.1.0*
+= 0.1.0
 
 * First release
