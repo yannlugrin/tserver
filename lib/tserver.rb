@@ -175,10 +175,8 @@ class TServer
 			listener[:connection].nil? ? listener.terminate : listener[:terminate] = true
 		end
 
-		Thread.exclusive do
-			@listeners.synchronize do
-				spawn_listener while @listeners.size < @min_listener
-			end
+		@listeners.synchronize do
+			spawn_listener while @listeners.size < @min_listener
 		end
 
 		true

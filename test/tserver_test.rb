@@ -213,15 +213,11 @@ class TServerTest < Test::Unit::TestCase
 	end
 
 	def test_should_be_reload
-		listeners = @server.instance_variable_get(:@listeners)
-
 		# Reload a non started server
 		assert_not_timeout('Server do not reload') { @server.reload }
 
 		# Do not spawn listeners !
-		listeners.synchronize do
-			assert_equal 0, listeners.size
-		end
+		assert_equal 0, @server.instance_variable_get(:@listeners).size
 
 		# Start the server
 		assert_not_timeout('Server do not start') { @server.start }
@@ -230,20 +226,15 @@ class TServerTest < Test::Unit::TestCase
 		assert_not_timeout('Client do not connect') { @client.connect }
 
 		# Copy list of current listeners
-		listeners_to_exit = nil
-    listeners.synchronize do
-    	listeners_to_exit = listeners.dup
-    end
+  	listeners_to_exit = @server.instance_variable_get(:@listeners).dup
 
 		# Reload the server
 		assert_not_timeout('Server do not reload') { @server.reload }
 
 		# Old listener is not terminated (connection with a client is established)
-		listeners.synchronize do
-			assert_equal 1, listeners.size
-			assert_not_equal listeners_to_exit.first, listeners.first
-			assert_not_equal, listeners_to_exit.first[:conn] = listeners.first[:conn]
-		end
+		assert_equal 1, @server.instance_variable_get(:@listeners).size
+		assert_not_equal listeners_to_exit.first, @server.instance_variable_get(:@listeners).first
+		assert_not_equal, listeners_to_exit.first[:conn] = @server.instance_variable_get(:@listeners).first[:conn]
 
 		# The client can communicate with server
 		assert_not_timeout 'Client do not communicate with server' do
