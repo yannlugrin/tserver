@@ -3,7 +3,7 @@
 Author::        Yann Lugrin (mailto:yann.lugrin@sans-savoir.net)
 Copyright:: 		Copyright (c) 2007 Yann Lugrin
 Licence::       MIT[link://files/LICENSE.html]
-Version::				0.1.0
+Version::				0.2.0
 
 This librarie implements a persistant multithread TCP server, it is alternative
 to 'gserver'[http://ruby-doc.org/stdlib/libdoc/gserver/rdoc/index.html] standard
