@@ -116,8 +116,8 @@ class TServerTest < Test::Unit::TestCase
 		assert !@server.stopped?
 
 		# Listener is spawned
-		assert_equal @server.min_listener, @server.listener
-		assert_equal @server.min_listener, @server.waiting_listener
+		assert_equal @server.min_listener, @server.listeners
+		assert_equal @server.min_listener, @server.waiting_listeners
 	end
 
 	def test_should_be_stopped
@@ -242,8 +242,8 @@ class TServerTest < Test::Unit::TestCase
 		wait_listener(4)
 
 		# Only 4 listerner for 5 client
-		assert_equal 0, @server.waiting_listener
-		assert_equal 4, @server.listener
+		assert_equal 0, @server.waiting_listeners
+		assert_equal 4, @server.listeners
 
 		# All clients send data to server
 		assert_not_timeout('Client do not communicate with server') { @client.send 'test string 1' }
@@ -275,8 +275,8 @@ class TServerTest < Test::Unit::TestCase
 		wait_listener
 
 		# min_listener waiting connection
-		assert_equal @server.min_listener, @server.listener
-		assert_equal @server.min_listener, @server.waiting_listener
+		assert_equal @server.min_listener, @server.listeners
+		assert_equal @server.min_listener, @server.waiting_listeners
 	end
 
 	def test_should_be_receive_connection_with_log_level_to_debug
@@ -314,8 +314,8 @@ class TServerTest < Test::Unit::TestCase
 		wait_listener
 
 		# min_listener
-		assert_equal @server.min_listener, @server.listener
-		assert_equal @server.min_listener, @server.waiting_listener
+		assert_equal @server.min_listener, @server.listeners
+		assert_equal @server.min_listener, @server.waiting_listeners
 	end
 
 	def test_should_have_connection_list
@@ -323,8 +323,8 @@ class TServerTest < Test::Unit::TestCase
 		assert_not_timeout('Server do not start') { @server.start }
 
 		# Zero connection
-		assert_equal @server.min_listener, @server.listener
-		assert_equal @server.min_listener, @server.waiting_listener
+		assert_equal @server.min_listener, @server.listeners
+		assert_equal @server.min_listener, @server.waiting_listeners
 		assert_equal [], @server.connections
 
 		# Start client
@@ -351,12 +351,12 @@ class TServerTest < Test::Unit::TestCase
 		# Wait listener spawn
 		def wait_listener(number = @server.min_listener)
 			assert_not_timeout 'Listener do not exit' do
-				sleep 0.1 until @server.listener == number
+				sleep 0.1 until @server.listeners == number
 			end
 		end
 
 		# Wait connection established with listener
-		def wait_connection(number = @server.listener)
+		def wait_connection(number = @server.listeners)
 			assert_not_timeout 'Listener do not exit' do
 				sleep 0.1 until @server.connections.size == number
 			end

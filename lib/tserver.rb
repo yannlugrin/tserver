@@ -146,12 +146,12 @@ class TServer
   end
 
   # Return the number of spawned listener.
-  def listener
+  def listeners
     @listener.synchronize { @listener.size }
   end
 
   # Return the number of spawned listener waiting on new connection.
-  def waiting_listener
+  def waiting_listeners
     @connections.num_waiting
   end
 
