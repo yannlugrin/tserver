@@ -182,75 +182,88 @@ class TServer
     #		conn.puts 'Hello world!'
     #	end
     #
+    #--
     # Use loop if you want persistant connection, if you wait on client input, use
     # Timeout#timeout with TCPSocket.read or test @shutdown with IO#select to exit
     # loop when server shutdown.
-    #--
+		#
     # TODO: Exemple with "Timeout#timeout / TCPSocket.read" and  "@shutdown / IO#select"
     #++
     def process(conn)
     end
 
+		# Callback (call when server is started)
     def server_started
       @logger.info do
         "server:#{Thread.current} [#{@host}:#{@port}] is started"
       end
     end
 
+		# Callback (call when server is stopped)
     def server_stopped
       @logger.info do
         "server:#{Thread.current} [#{@host}:#{@port}] is stopped"
       end
     end
 
+		# Callback (call when server shutdown, before is stopped)
     def server_shutdown
       @logger.info do
         "server:#{Thread.current} [#{@host}:#{@port}] shutdown"
       end
     end
 
+		# Callback (call when server wait new connection)
     def server_waiting_connection
       @logger.info do
         "server:#{Thread.current} [#{@host}:#{@port}] wait on connection"
       end
     end
 
+		# Callback (call when server wait free listener, don't accept new connection)
     def server_waiting_listener
       @logger.info do
         "server:#{Thread.current} [#{@host}:#{@port}] wait on listener"
       end
     end
 
+		# Callback (call when listener is spawned)
     def listener_spawned
       @logger.info do
         "listener:#{Thread.current} is spawned by server:#{Thread.current} [#{@host}:#{@port}]"
       end
     end
 
+		# Callback (call when listener exit)
     def listener_terminated
       @logger.info do
         "listener:#{Thread.current} is terminated"
       end
     end
 
+		# Callback (call when listener wait connection - free listener)
     def listener_waiting_connection
       @logger.info do
         "listener:#{Thread.current} wait on connection from server:#{Thread.current} [#{@host}:#{@port}]"
       end
     end
 
+		# Callback (call when a connection is established with listener)
     def connection_established
       @logger.info do
         "client:#{conn_addr[1]} #{conn_addr[2]}<#{conn_addr[3]}> is connected to listener:#{Thread.current}"
-      end
+       end
     end
 
+		# Callback (call when the connection with listener close normally)
     def connection_normally_closed
       @logger.info do
         "client:#{conn_addr[1]} #{conn_addr[2]}<#{conn_addr[3]}> is disconnected from listener:#{Thread.current}"
-      end
+       end
     end
 
+		# Callback (call when the connection with listener do not close normally,
+		# reveive 'error' instance from rescue)
     def connection_not_normally_closed(error)
       @logger.info do
         "client:#{conn_addr[1]} #{conn_addr[2]}<#{conn_addr[3]}> make an error and is disconnected from listener:#{Thread.current}"
@@ -298,6 +311,11 @@ class TServer
       @listener.synchronize { @listener << listener }
     end
 
+		# Return array with information for current thread connection:
+	  # * address family: A string like "AF_INET" or "AF_INET6" if it is one of the commonly used families, the string "unknown:#" (where '#' is the address family number) if it is not one of the common ones. The strings map to the Socket::AF_* constants.
+	  # * port: The port number.
+	  # * name: Either the canonical name from looking the address up in the DNS, or the address in presentation format.
+	  # * address: The address in presentation format (a dotted decimal string for IPv4, a hex string for IPv6).
     def conn_addr
       Thread.current[:conn_addr] ||= (Thread.current[:conn].nil? ? [nil] * 4 : Thread.current[:conn].peeraddr)
     end

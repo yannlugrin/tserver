@@ -56,7 +56,7 @@ class TServerTest < Test::Unit::TestCase
 	def setup
 		SERVER_READER.clear
 
-		@server = TestServer.new
+		@server = TestServer.new(:stdlog => IO.pipe[1])
 		@client = TestClient.new(@server.host, @server.port)
 	end
 
@@ -270,6 +270,21 @@ class TServerTest < Test::Unit::TestCase
 		# min_listener waiting connection
 		assert_equal @server.min_listener, @server.listener
 		assert_equal @server.min_listener, @server.waiting_listener
+	end
+
+	def test_should_be_receive_connection_with_log_level_to_debug
+		@server.logger.level = Logger::DEBUG
+
+		# Start server and client
+		assert_not_timeout('Server do not start') { @server.start }
+		assert_not_timeout('Client do not connect') { @client.connect }
+
+		# Client can communicate with the server
+		assert_not_timeout 'Client do not communicate with server' do
+			@client.send 'test string'
+			assert_equal 'test string', SERVER_READER.pop.chomp
+			assert_equal 'test string', @client.receive
+		end
 	end
 
 	def test_should_works_with_min_listener_at_0
