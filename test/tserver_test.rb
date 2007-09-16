@@ -4,6 +4,7 @@ require 'thread'
 
 require File.expand_path(File.dirname(__FILE__) + '/../lib/tserver')
 
+TEST_LOG = File.expand_path(File.dirname(__FILE__) + '/test.log')
 SERVER_READER = Queue.new
 
 # The test server can send received data to an IO
@@ -56,7 +57,7 @@ class TServerTest < Test::Unit::TestCase
 	def setup
 		SERVER_READER.clear
 
-		@server = TestServer.new(:stdlog => IO.pipe[1])
+		@server = TestServer.new(:log_level => Logger::DEBUG, :stdlog => TEST_LOG)
 		@client = TestClient.new(@server.host, @server.port)
 	end
 
@@ -75,17 +76,23 @@ class TServerTest < Test::Unit::TestCase
 
 		assert_equal 4, server.max_connection
 		assert_equal 1, server.min_listener
+
+		assert_kind_of Logger, server.logger
+		assert_equal Logger::WARN, server.logger.level
 	end
 
 	def test_should_can_create_with_custom_values
 		# Set all options
-		server = TServer.new(:port => 10002, :host => '192.168.1.1', :max_connection => 10, :min_listener => 2, :verbose => true, :debug => true, :stdlog => $stdout)
+		server = TServer.new(:port => 10002, :host => '192.168.1.1', :max_connection => 10, :min_listener => 2, :log_level => Logger::DEBUG)
 
 		assert_equal 10002, server.port
 		assert_equal '192.168.1.1', server.host
 
 		assert_equal 10, server.max_connection
 		assert_equal 2, server.min_listener
+
+		assert_kind_of Logger, server.logger
+		assert_equal Logger::DEBUG, server.logger.level
 	end
 
 	def test_should_dont_have_more_min_listener_that_of_max_connection
@@ -288,7 +295,7 @@ class TServerTest < Test::Unit::TestCase
 	end
 
 	def test_should_works_with_min_listener_at_0
-		@server = TestServer.new(:min_listener => 0)
+		@server = TestServer.new(:min_listener => 0, :stdlog => TEST_LOG)
 		assert_equal 0, @server.min_listener
 
 		# Start server and client
@@ -312,10 +319,20 @@ class TServerTest < Test::Unit::TestCase
 	end
 
 	def test_should_have_connection_list
-		# Start server and client
+		# Start server
 		assert_not_timeout('Server do not start') { @server.start }
-		assert_not_timeout('Client do not connect') { @client.connect }
 
+		# Zero connection
+		assert_equal @server.min_listener, @server.listener
+		assert_equal @server.min_listener, @server.waiting_listener
+		assert_equal [], @server.connections
+
+		# Start client
+		assert_not_timeout('Client do not connect') { @client.connect }
+		wait_connection
+
+		# Connection information
+		assert_equal 1, @server.connections.size
 		assert_equal 'AF_INET', @server.connections.first[0]
 		assert_match(/^\d+$/, @server.connections.first[1].to_s)
 		assert_match(/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/, @server.connections.first[3])
@@ -331,9 +348,17 @@ class TServerTest < Test::Unit::TestCase
 			end
 		end
 
+		# Wait listener spawn
 		def wait_listener(number = @server.min_listener)
 			assert_not_timeout 'Listener do not exit' do
 				sleep 0.1 until @server.listener == number
+			end
+		end
+
+		# Wait connection established with listener
+		def wait_connection(number = @server.listener)
+			assert_not_timeout 'Listener do not exit' do
+				sleep 0.1 until @server.connections.size == number
 			end
 		end
 

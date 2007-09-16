@@ -31,15 +31,17 @@ require 'logger'
 # Show README[link://files/README.html] for more information and exemple.
 class TServer
 
-  # Return current value of the option.
-  attr_reader :port, :host, :max_connection, :min_listener, :logger
+  # Current value of the attribute
+  attr_reader :port, :host, :max_connection, :min_listener
+  # Logger instance
+  attr_reader :logger
 
   DEFAULT_OPTIONS = {
     :port => 10001,
     :host => '127.0.0.1',
     :max_connection => 4,
     :min_listener => 1,
-    :level => Logger::WARN,
+    :log_level => Logger::WARN,
     :stdlog => $stderr }
 
   # Initialize a new server (use start to run the server).
@@ -49,7 +51,7 @@ class TServer
   # * <tt>:host</tt>  - IP which the server listen on (default: 127.0.0.1).
   # * <tt>:max_connection</tt>  - Maximum number of simultaneous connection to server (default: 4, minimum: 1).
   # * <tt>:min_listener</tt>  - Minimum number of listener thread (default: 1, minimum: 0).
-  # * <tt>:level</tt>  - Use Logger constants DEBUG, INFO, WARN, ERROR or FATAL to set log level (default: Logger:WARN).
+  # * <tt>:log_level</tt>  - Use Logger constants DEBUG, INFO, WARN, ERROR or FATAL to set log level (default: Logger:WARN).
   # * <tt>:stdlog</tt>  - IO or filepath for log output (default: $stderr).
   def initialize(options = {})
     options = DEFAULT_OPTIONS.merge(options)
@@ -61,7 +63,7 @@ class TServer
     @min_listener = options[:min_listener] < 0 ? 0 : (options[:min_listener] > @max_connection ? @max_connection : options[:min_listener])
 
     @logger = Logger.new(options[:stdlog])
-    @logger.level = options[:level]
+    @logger.level = options[:log_level]
 
     @tcp_server = nil
     @tcp_server_thread = nil
@@ -159,7 +161,7 @@ class TServer
   # * name: Either the canonical name from looking the address up in the DNS, or the address in presentation format.
   # * address: The address in presentation format (a dotted decimal string for IPv4, a hex string for IPv6).
   def connections
-    @listener.synchronize { @listener.collect{|l| l[:conn].peeraddr} }
+    @listener.synchronize { @listener.collect{|l| l[:conn].nil? ? nil : l[:conn].peeraddr } }.compact
   end
 
   # Return true if server running.
