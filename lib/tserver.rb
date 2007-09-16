@@ -265,7 +265,7 @@ class TServer
 		# Callback (call when the connection with listener do not close normally,
 		# reveive 'error' instance from rescue)
     def connection_not_normally_closed(error)
-      @logger.info do
+      @logger.warn do
         "client:#{conn_addr[1]} #{conn_addr[2]}<#{conn_addr[3]}> make an error and is disconnected from listener:#{Thread.current}"
       end
 
