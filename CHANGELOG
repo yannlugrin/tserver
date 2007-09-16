@@ -1,5 +1,8 @@
 *SVN*
 
+* Add 'server' task to Rakefile: run exemple_server.rb
+* Add multiple callback to log event, but can be overrited
+* Use Logger for logging implementation
 * Tests pass with 'win32' platform
 
 *0.1.0*

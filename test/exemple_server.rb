@@ -23,13 +23,16 @@ ARGV.each do |argv|
 	end
 end
 
-#
+# ExempleServer return string received from client.
+# Send quit, exit or close to close connection or
+# stop to kill server.
 class ExempleServer < TServer
 	def process(conn)
 		conn.each do |line|
+			stop if line =~ /stop/
 			break if line =~ /(quit|exit|close)/
 
-			log '> ' + line.chomp
+			puts '> ' + line.chomp
 			conn.puts Time.now.to_s + ' > ' + line.chomp
 		end
 	end
@@ -37,11 +40,12 @@ end
 
 # Start server
 server = ExempleServer.new(:port => port, :host => host)
-server.verbose = true
-server.debug = true
+server.logger.level = Logger::DEBUG
 
 Signal.trap('SIGINT') do
 	server.shutdown
 end
 
-server.start(true)
+server.start
+
+sleep 0.5 while server.started?

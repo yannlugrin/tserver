@@ -21,6 +21,13 @@ Rake::TestTask.new do |t|
 	t.warning = true
 end
 
+# Exemple server
+desc "Run 'test/exemple_server.rb', accept IP and PORT argument (default: 127.0.0.1 10001)"
+task :server do
+	require 'test\exemple_server'
+end
+
+
 # Doc
 Rake::RDocTask.new do |rdoc|
 	rdoc.title = "TServer - #{TSERVER_VERSION} - RDOC Documentation"

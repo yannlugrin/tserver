@@ -75,11 +75,6 @@ class TServerTest < Test::Unit::TestCase
 
 		assert_equal 4, server.max_connection
 		assert_equal 1, server.min_listener
-
-		assert_equal false, server.verbose
-		assert_equal false, server.debug
-
-		assert_equal $stderr, server.instance_variable_get(:@stdlog)
 	end
 
 	def test_should_can_create_with_custom_values
@@ -91,11 +86,6 @@ class TServerTest < Test::Unit::TestCase
 
 		assert_equal 10, server.max_connection
 		assert_equal 2, server.min_listener
-
-		assert_equal true, server.verbose
-		assert_equal true, server.debug
-
-		assert_equal $stdout, server.instance_variable_get(:@stdlog)
 	end
 
 	def test_should_dont_have_more_min_listener_that_of_max_connection
@@ -110,22 +100,6 @@ class TServerTest < Test::Unit::TestCase
 
 		assert_equal 1, server.max_connection
 		assert_equal 0, server.min_listener
-	end
-
-	def test_should_change_verbose_status
-		server = TServer.new
-		assert_equal false, server.verbose
-
-		server.verbose = true
-		assert_equal true, server.verbose
-	end
-
-	def test_should_change_debug_status
-		server = TServer.new
-		assert_equal false, server.debug
-
-		server.debug = true
-		assert_equal true, server.debug
 	end
 
 	def test_should_be_started
