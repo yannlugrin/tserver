@@ -22,8 +22,8 @@
 # THE SOFTWARE.
 #++
 
-require "socket"
-require "thread"
+require 'socket'
+require 'thread'
 require 'thwait'
 require 'monitor'
 require 'logger'

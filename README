@@ -10,8 +10,9 @@ to 'gserver'[http://ruby-doc.org/stdlib/libdoc/gserver/rdoc/index.html] standard
 librarie. TServer is designed to be inherited by your custom server class. The
 server can accepts multiple simultaneous connections from clients, can be
 configured to have a maximum connection and a minimum permanent listener thread.
-Can be imediatly stopped or gracefull shutdown (dont accept new connection but
-wait onb established connection before realy stop).
+Can be imediatly stopped, gracefull shutdown (dont accept new connection but
+wait established connection is closed before realy stop) or reloaded (terminate
+listener after established connection is closed and respawn new).
 
 == Example
 
