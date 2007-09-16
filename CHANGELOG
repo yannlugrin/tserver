@@ -1,8 +1,14 @@
 *SVN*
 
-* Add 'server' task to Rakefile: run exemple_server.rb
-* Add multiple callback to log event, but can be overrited
+* TServer.connections work when a listener don't have active connection
+* Testing server Logger output in './test.log'
+* Plurialize methods: Tserver.listeners, TServer.waiting_listeners
+* Add 'server' task to Rakefile: run 'test/exemple_server.rb'
+* Add multiple callback to log event, can be overrited
 * Use Logger for logging implementation
+
+*0.1.1*
+
 * Tests pass with 'win32' platform
 
 *0.1.0*

@@ -4,7 +4,7 @@ require 'thread'
 
 require File.expand_path(File.dirname(__FILE__) + '/../lib/tserver')
 
-TEST_LOG = File.expand_path(File.dirname(__FILE__) + '/test.log')
+TEST_LOG = 'test.log'
 SERVER_READER = Queue.new
 
 # The test server can send received data to an IO
