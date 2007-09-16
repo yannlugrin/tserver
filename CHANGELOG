@@ -1,5 +1,6 @@
 *SVN*
 
+* Reload method (terminate all exists listerners and spawn new without interupt service and established connection)
 * TServer.connections work when a listener don't have active connection
 * Testing server Logger output in './test.log'
 * Plurialize methods: Tserver.listeners, TServer.waiting_listeners

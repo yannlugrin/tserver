@@ -199,7 +199,7 @@ class TServerTest < Test::Unit::TestCase
 
 		# Close client
 		assert_not_timeout('Client do not close connection') { @client.close }
-		wait_listener
+		wait_listeners
 
 		# Wait server shutdown
 		assert_not_timeout('Server do not shutdown') { shutdown_thread.join }
@@ -209,6 +209,63 @@ class TServerTest < Test::Unit::TestCase
 		assert @server.stopped?
 		assert_raise(RUBY_PLATFORM =~ /win32/ ? Errno::EBADF : Errno::ECONNREFUSED) do
 			@client.connect
+		end
+	end
+
+	def test_should_be_reload
+		listeners = @server.instance_variable_get(:@listeners)
+
+		# Reload a non started server
+		assert_not_timeout('Server do not reload') { @server.reload }
+
+		# Do not spawn listeners !
+		listeners.synchronize do
+			assert_equal 0, listeners.size
+		end
+
+		# Start the server
+		assert_not_timeout('Server do not start') { @server.start }
+
+		# The server is started and accept connection
+		assert_not_timeout('Client do not connect') { @client.connect }
+
+		# Copy list of current listeners
+		listeners_to_exit = nil
+    listeners.synchronize do
+    	listeners_to_exit = listeners.dup
+    end
+
+		# Reload the server
+		assert_not_timeout('Server do not reload') { @server.reload }
+
+		# Old listener is not terminated (connection with a client is established)
+		listeners.synchronize do
+			assert_equal 1, listeners.size
+			assert_not_equal listeners_to_exit.first, listeners.first
+			assert_not_equal, listeners_to_exit.first[:conn] = listeners.first[:conn]
+		end
+
+		# The client can communicate with server
+		assert_not_timeout 'Client do not communicate with server' do
+			@client.send 'test string'
+			assert_equal 'test string', SERVER_READER.pop.chomp
+			assert_equal 'test string', @client.receive
+		end
+
+		# Close client
+		assert_not_timeout('Client do not close connection') { @client.close }
+
+		# Old listeners exit
+    ThreadsWait.all_waits(*listeners_to_exit)
+
+		# The server is started and accept connection
+		assert_not_timeout('Client do not connect') { @client.connect }
+
+		# The client can communicate with server
+		assert_not_timeout 'Client do not communicate with server' do
+			@client.send 'test string'
+			assert_equal 'test string', SERVER_READER.pop.chomp
+			assert_equal 'test string', @client.receive
 		end
 	end
 
@@ -239,7 +296,7 @@ class TServerTest < Test::Unit::TestCase
 		assert_not_timeout('Client do not connect') { @client_3.connect }
 		assert_not_timeout('Client do not connect') { @client_4.connect }
 		assert_not_timeout('Client do not connect') { @client_5.connect }
-		wait_listener(4)
+		wait_listeners(4)
 
 		# Only 4 listerner for 5 client
 		assert_equal 0, @server.waiting_listeners
@@ -272,7 +329,7 @@ class TServerTest < Test::Unit::TestCase
 		[@client_2, @client_3, @client_4, @client_5].each do |client|
 			assert_not_timeout('Client do not close connection') { client.close }
 		end
-		wait_listener
+		wait_listeners
 
 		# min_listener waiting connection
 		assert_equal @server.min_listener, @server.listeners
@@ -311,7 +368,7 @@ class TServerTest < Test::Unit::TestCase
 
 		# Close client
 		assert_not_timeout('Client do not close connection') { @client.close }
-		wait_listener
+		wait_listeners
 
 		# min_listener
 		assert_equal @server.min_listener, @server.listeners
@@ -349,7 +406,7 @@ class TServerTest < Test::Unit::TestCase
 		end
 
 		# Wait listener spawn
-		def wait_listener(number = @server.min_listener)
+		def wait_listeners(number = @server.min_listener)
 			assert_not_timeout 'Listener do not exit' do
 				sleep 0.1 until @server.listeners == number
 			end
