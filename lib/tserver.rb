@@ -28,7 +28,7 @@ require 'thwait'
 require 'monitor'
 require 'logger'
 
-# Show README[link://files/README.html] for implementation exemple.
+# Show README[link://files/README.html] for implementation example.
 class TServer
 
 	# Server port (default: 10001).
@@ -217,7 +217,7 @@ class TServer
 		# Override this method to implement a server, conn is a TCPSocket instance and
 		# is closed when this method return. Attribute 'connection' is available.
 		#
-		# Exemple (send 'Hello world!' string to client):
+		# Example (send 'Hello world!' string to client):
 		#	def process
 		#		connection.puts 'Hello world!'
 		#	end

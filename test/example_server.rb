@@ -1,15 +1,15 @@
 require File.expand_path(File.dirname(__FILE__) + '/../lib/tserver')
 
-# Exemple server, lauch this script and open a telnet to communicate
+# Example server, lauch this script and open a telnet to communicate
 # with the server. The server print logging information and received data
 # in console. The client receive a copy of sending data.
 #
-# Syntax exemple :
-# ruby exemple_server.rb
-# ruby exemple_server.rb 127.0.0.1 10001
-# ruby exemple_server.rb 127.0.0.1
-# ruby exemple_server.rb 10001
-# ruby exemple_server.rb 10001 127.0.0.1
+# Syntax example :
+# ruby example_server.rb
+# ruby example_server.rb 127.0.0.1 10001
+# ruby example_server.rb 127.0.0.1
+# ruby example_server.rb 10001
+# ruby example_server.rb 10001 127.0.0.1
 #
 # Default values :
 host = '127.0.0.1'
@@ -23,10 +23,10 @@ ARGV.each do |argv|
 	end
 end
 
-# ExempleServer return string received from client.
+# ExampleServer return string received from client.
 # Send quit, exit or close to close connection or
 # stop to kill server.
-class ExempleServer < TServer
+class ExampleServer < TServer
 	def process
 		connection.each do |line|
 			stop if line =~ /stop/
@@ -39,7 +39,7 @@ class ExempleServer < TServer
 end
 
 # Start server
-server = ExempleServer.new(:port => port, :host => host)
+server = ExampleServer.new(:port => port, :host => host)
 server.logger.level = Logger::DEBUG
 
 Signal.trap('SIGINT') do
