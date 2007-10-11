@@ -24,7 +24,7 @@ end
 # Exemple server
 desc 'Run \'test/example_server.rb\', accept IP and PORT argument (default: 127.0.0.1 10001)'
 task :server do
-	require 'test\example_server'
+	require 'test/example_server'
 end
 
 
