@@ -79,9 +79,9 @@ class TServer
 		@tcp_server_thread = nil
 		@connections = Queue.new
 
-		@listeners = []
-		@listeners.extend(MonitorMixin)
-		@listener_cond = @listeners.new_cond
+		@listener_threads = []
+		@listener_threads.extend(MonitorMixin)
+		@listener_cond = @listener_threads.new_cond
 
 		@shutdown = false
 	end
@@ -100,8 +100,8 @@ class TServer
 				server_started
 
 				loop do
-					@listeners.synchronize do
-						if @connections.num_waiting == 0 && @listeners.size >= @max_connection
+					@listener_threads.synchronize do
+						if @connections.num_waiting == 0 && @listener_threads.size >= @max_connection
 							server_waiting_listener
 							@listener_cond.wait
 						end
@@ -131,7 +131,7 @@ class TServer
 	# Stop imediatly the server (all established connection is interrupted).
 	def stop
 		@tcp_server.close rescue nil
-		@listeners.synchronize { @listeners.each {|l| l.exit} }
+		@listener_threads.synchronize { @listener_threads.each {|l| l.exit} }
 		@tcp_server_thread.exit rescue nil
 
 		true
@@ -146,15 +146,16 @@ class TServer
 		@tcp_server.close rescue nil
 		Thread.pass until @connections.empty?
 
-		@listeners.synchronize  do
-			@listeners.each do |listener|
+		@listener_threads.synchronize  do
+			@listener_threads.each do |listener|
 				listener[:terminate] = true
 				@connections << false
 			end
 		end
 
-		ThreadsWait.all_waits(*@listeners)
+		ThreadsWait.all_waits(*@listener_threads)
 		@tcp_server_thread.exit rescue nil
+		@tcp_server_thread = nil
 
 		true
 	end
@@ -166,17 +167,17 @@ class TServer
 		return if stopped?
 
 		listeners_to_exit = nil
-		@listeners.synchronize do
-			listeners_to_exit = @listeners.dup
-			@listeners.clear
+		@listener_threads.synchronize do
+			listeners_to_exit = @listener_threads.dup
+			@listener_threads.clear
 		end
 
 		listeners_to_exit.each do |listener|
 			listener[:connection].nil? ? listener.terminate : listener[:terminate] = true
 		end
 
-		@listeners.synchronize do
-			spawn_listener while @listeners.size < @min_listener
+		@listener_threads.synchronize do
+			spawn_listener while @listener_threads.size < @min_listener
 		end
 
 		true
@@ -184,7 +185,7 @@ class TServer
 
 	# Return the number of spawned listener.
 	def listeners
-		@listeners.synchronize { @listeners.size }
+		@listener_threads.synchronize { @listener_threads.size }
 	end
 
 	# Return the number of spawned listener waiting on new connection.
@@ -198,12 +199,12 @@ class TServer
 	# * name: Either the canonical name from looking the address up in the DNS, or the address in presentation format.
 	# * address: The address in presentation format (a dotted decimal string for IPv4, a hex string for IPv6).
 	def connections
-		@listeners.synchronize { @listeners.collect{|l| l[:connection].nil? ? nil : l[:connection].peeraddr } }.compact
+		@listener_threads.synchronize { @listener_threads.collect{|l| l[:connection].nil? ? nil : l[:connection].peeraddr } }.compact
 	end
 
 	# Return true if server running.
 	def started?
-		@listeners.synchronize { !@tcp_server_thread.nil? || @listeners.size > 0 }
+		@listener_threads.synchronize { !@tcp_server_thread.nil? || @listener_threads.size > 0 }
 	end
 
 	# Return true if server dont running.
@@ -313,7 +314,7 @@ class TServer
 	private
 
 		def spawn_listener #:nodoc:
-			listener = Thread.new do
+			listener_thread = Thread.new do
 				begin
 					listener_spawned
 					loop do
@@ -325,6 +326,8 @@ class TServer
 								connection_established
 								process
 								connection_normally_closed
+							else
+								Thread.exit
 							end
 						rescue => e
 							connection_not_normally_closed(e)
@@ -333,15 +336,15 @@ class TServer
 							self.connection = nil
 						end
 
-						@listeners.synchronize { @listener_cond.signal }
+						@listener_threads.synchronize { @listener_cond.signal }
 					end
 				ensure
-					@listeners.synchronize { @listeners.delete(Thread.current) }
+					@listener_threads.synchronize { @listener_threads.delete(Thread.current) }
 					listener_terminated
 				end
 			end
 
-			@listeners.synchronize { @listeners << listener }
+			@listener_threads.synchronize { @listener_threads << listener_thread }
 		end
 
 		# Set connection for current Thread
