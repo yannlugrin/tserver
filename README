@@ -16,12 +16,12 @@ listener after established connection is closed and respawn new).
 
 == Example
 
-This exemple can receive simple string from telnet connection
+This example can receive simple string from telnet connection
 
   require 'tserver'
 
   # A server can return
-  class ExempleServer < TServer
+  class ExampleServer < TServer
     def process
       connection.each do |line|
         break if line =~ /(quit|exit|close)/
@@ -34,7 +34,7 @@ This exemple can receive simple string from telnet connection
 
   # Create the server with logging enabled (server activity is displayed
   # in console with received data)
-  server = ExempleServer.new
+  server = ExampleServer.new
   server.verbose = true
 
   # Shutdown the server when script is interupted
