@@ -22,9 +22,9 @@ Rake::TestTask.new do |t|
 end
 
 # Exemple server
-desc 'Run \'test/exemple_server.rb\', accept IP and PORT argument (default: 127.0.0.1 10001)'
+desc 'Run \'test/example_server.rb\', accept IP and PORT argument (default: 127.0.0.1 10001)'
 task :server do
-	require 'test\exemple_server'
+	require 'test\example_server'
 end
 
 
