@@ -100,6 +100,7 @@ class TServer
 		end
 
 		# Exit listener after process of current connection.
+		#
 		# TODO: exit listener if don't have active connection (in thread exclusive block)
 		def terminate
 			@terminate = true
