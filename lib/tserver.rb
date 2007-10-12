@@ -86,8 +86,8 @@ class TServer
 		end
 
 		# Override this method to implement configuration of listener, options is
-		# value of 'listener_options' key from server initialization, start or
-		# reload method.
+		# value of 'listener_options' key from TServer#new, TServer#start or
+		# TServer#reload methods.
 		#
 		# List of existing instance variable (do not override): @connection, @connections,
 		# @connection_addr, @listeners, @listener_cond, @logger, @server, @terminate, @thread.
@@ -99,7 +99,7 @@ class TServer
 			@thread.exit
 		end
 
-		# Exit listener after process of current connection.
+		# Mark listener to terminate processing of current connection.
 		#
 		# TODO: exit listener if don't have active connection (in thread exclusive block)
 		def terminate
@@ -179,8 +179,6 @@ class TServer
 				end
 			end
 
-		private
-
 			# Close current connection.
 			def close_connection
 				@connection.close rescue nil
@@ -188,7 +186,7 @@ class TServer
 				@connection_addr = nil
 			end
 
-			# Return true if server ask listener to exit (when shutdown or reload).
+			# Return true if server ask listener to terminate (when shutdown or reload).
 			def terminated?
 				@terminate == true
 			end
@@ -228,7 +226,7 @@ class TServer
 	# * <tt>:min_listener</tt>  - Minimum number of listener thread (default: 1, minimum: 0).
 	# * <tt>:log_level</tt>  - Use Logger constants DEBUG, INFO, WARN, ERROR or FATAL to set log level (default: Logger::WARN).
 	# * <tt>:stdlog</tt>  - IO or filepath for log output (default: $stderr).
-	# * <tt>:listener_options</tt>  - Hash of listener options (default: empty hash).
+	# * <tt>:listener_options</tt>  - Hash of options for Listener#init (default: empty hash).
 	def initialize(options = {})
 		options = DEFAULT_OPTIONS.merge(options)
 
@@ -256,7 +254,7 @@ class TServer
 
 	# Start the server, if joined is set at true this method return only when
 	# the server is stopped (you can also use join method after start). listener_options
-	# is a Hash of options for listeners.
+	# is a Hash of options for Listener#init.
 	def start(listener_options = {}, joined = false)
 		@shutdown = false
 		@tcp_server = TCPServer.new(@host, @port)
@@ -340,7 +338,7 @@ class TServer
 	# Reload the server
 	# * Spawn new listeners.
 	# * Terminate existing listeners when current connection is closed.
-	# listener_options is a Hash of options for listeners.
+	# listener_options is a Hash of options for Listener#init.
 	def reload(listener_options = {})
 		return if stopped?
 
