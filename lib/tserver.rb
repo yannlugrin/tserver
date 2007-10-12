@@ -31,12 +31,13 @@ require 'logger'
 # Show README[link://files/README.html] for implementation example.
 class TServer
 
+	# Show README[link://files/README.html] for implementation example.
 	class Listener
 
-		# Return current TCPSocket or nil
+		# Return current TCPSocket or nil.
 		attr_reader :connection
 
-		# options hash is passed to init method
+		# options hash is passed to init method.
 		def initialize(server, listeners, listener_cond, connections, options = {}) #:nodoc:
 			@server = server
 			@logger = server.logger
@@ -121,35 +122,35 @@ class TServer
 			def process
 			end
 
-			# Callback (call when listener is spawned)
+			# Callback (call when listener is spawned).
 			def listener_spawned
 				@logger.info do
 					"listener:#{self} is spawned by server:#{@server} [#{@server.host}:#{@server.port}]"
 				end
 			end
 
-			# Callback (call when listener exit)
+			# Callback (call when listener exit).
 			def listener_terminated
 				@logger.info do
 					"listener:#{self} is terminated"
 				end
 			end
 
-			# Callback (call when listener wait connection - free listener)
+			# Callback (call when listener wait connection - free listener).
 			def listener_waiting_connection
 				@logger.info do
 					"listener:#{self} wait on connection from server:#{@server} [#{@server.host}:#{@server.port}]"
 				end
 			end
 
-			# Callback (call when a connection is established with listener)
+			# Callback (call when a connection is established with listener).
 			def connection_established
 				@logger.info do
 					"client:#{connection_addr[1]} #{connection_addr[2]}<#{connection_addr[3]}> is connected to listener:#{self}"
 				 end
 			end
 
-			# Callback (call when the connection with listener close normally)
+			# Callback (call when the connection with listener close normally).
 			def connection_normally_closed
 				@logger.info do
 					"client:#{connection_addr[1]} #{connection_addr[2]}<#{connection_addr[3]}> is disconnected from listener:#{self}"
@@ -157,7 +158,7 @@ class TServer
 			end
 
 			# Callback (call when the connection with listener do not close normally,
-			# reveive 'error' instance from rescue)
+			# reveive 'error' instance from rescue).
 			def connection_not_normally_closed(error)
 				@logger.warn do
 					"client:#{connection_addr[1]} #{connection_addr[2]}<#{connection_addr[3]}> make an error and is disconnected from listener:#{self}"
@@ -171,14 +172,14 @@ class TServer
 
 		private
 
-			# Close current connection
+			# Close current connection.
 			def close_connection
 				@connection.close rescue nil
 				@connection = nil
 				@connection_addr = nil
 			end
 
-			# Return true if server ask listener to exit (when shutdown or reload)
+			# Return true if server ask listener to exit (when shutdown or reload).
 			def terminated?
 				@terminate == true
 			end
@@ -241,7 +242,7 @@ class TServer
 	end
 
 	# Start the server, if joined is set at true this method return only when
-	# the server is stopped (you can also use join method after start)
+	# the server is stopped (you can also use join method after start).
 	def start(joined = false)
 		@shutdown = false
 		@tcp_server = TCPServer.new(@host, @port)
@@ -375,35 +376,35 @@ class TServer
 
 	protected
 
-		# Callback (call when server is started)
+		# Callback (call when server is started).
 		def server_started
 			@logger.info do
 				"server:#{self} [#{@host}:#{@port}] is started"
 			end
 		end
 
-		# Callback (call when server is stopped)
+		# Callback (call when server is stopped).
 		def server_stopped
 			@logger.info do
 				"server:#{self} [#{@host}:#{@port}] is stopped"
 			end
 		end
 
-		# Callback (call when server shutdown, before is stopped)
+		# Callback (call when server shutdown, before is stopped).
 		def server_shutdown
 			@logger.info do
 				"server:#{self} [#{@host}:#{@port}] shutdown"
 			end
 		end
 
-		# Callback (call when server wait new connection)
+		# Callback (call when server wait new connection).
 		def server_waiting_connection
 			@logger.info do
 				"server:#{self} [#{@host}:#{@port}] wait on connection"
 			end
 		end
 
-		# Callback (call when server wait free listener, don't accept new connection)
+		# Callback (call when server wait free listener, don't accept new connection).
 		def server_waiting_listener
 			@logger.info do
 				"server:#{self} [#{@host}:#{@port}] wait on listener"
