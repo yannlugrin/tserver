@@ -97,6 +97,7 @@ class TServer
 		end
 
 		# Exit listener after process of current connection.
+		# TODO: exit listener if don't have active connection (in thread exclusive block)
 		def terminate
 			@terminate = true
 		end
@@ -211,7 +212,8 @@ class TServer
 		:max_connection => 4,
 		:min_listener => 1,
 		:log_level => Logger::WARN,
-		:stdlog => $stderr }
+		:stdlog => $stderr,
+		:listener_options => {} }
 
 	# Initialize a new server (use start to run the server).
 	#
@@ -222,6 +224,7 @@ class TServer
 	# * <tt>:min_listener</tt>  - Minimum number of listener thread (default: 1, minimum: 0).
 	# * <tt>:log_level</tt>  - Use Logger constants DEBUG, INFO, WARN, ERROR or FATAL to set log level (default: Logger::WARN).
 	# * <tt>:stdlog</tt>  - IO or filepath for log output (default: $stderr).
+	# * <tt>:listener_options</tt>  - Hash of listener options (default: empty hash).
 	def initialize(options = {})
 		options = DEFAULT_OPTIONS.merge(options)
 
@@ -242,18 +245,22 @@ class TServer
 		@listeners.extend(MonitorMixin)
 		@listener_cond = @listeners.new_cond
 
+		@listener_options = options[:listener_options]
+
 		@shutdown = false
 	end
 
 	# Start the server, if joined is set at true this method return only when
-	# the server is stopped (you can also use join method after start).
-	def start(joined = false)
+	# the server is stopped (you can also use join method after start). listener_options
+	# is a Hash of options for listeners.
+	def start(listener_options = {}, joined = false)
 		@shutdown = false
 		@tcp_server = TCPServer.new(@host, @port)
 
+		@listener_options = listener_options
 		@listeners.synchronize do
 			@min_listener.times do
-				@listeners << self.class::Listener.new(self, @listeners, @listener_cond, @connections)
+				@listeners << self.class::Listener.new(self, @listeners, @listener_cond, @connections, @listener_options)
 			end
 		end
 		Thread.pass while @connections.num_waiting < @min_listener
@@ -274,7 +281,7 @@ class TServer
 					@connections << @tcp_server.accept rescue Thread.exit
 
 					@listeners.synchronize do
-						@listeners << self.class::Listener.new(self, @listeners, @listener_cond, @connections) if !@connections.empty? && @connections.num_waiting == 0
+						@listeners << self.class::Listener.new(self, @listeners, @listener_cond, @connections, @listener_options) if !@connections.empty? && @connections.num_waiting == 0
 					end
 				end
 			ensure
@@ -329,13 +336,15 @@ class TServer
 	# Reload the server
 	# * Spawn new listeners.
 	# * Terminate existing listeners when current connection is closed.
-	def reload
+	# listener_options is a Hash of options for listeners.
+	def reload(listener_options = {})
 		return if stopped?
 
 		listeners_to_exit = nil
 		@listeners.synchronize do
 			listeners_to_exit = @listeners.dup
 			@listeners.clear
+			@listener_options = listener_options
 		end
 
 		listeners_to_exit.each do |listener|
@@ -343,7 +352,7 @@ class TServer
 		end
 
 		@listeners.synchronize do
-			@listeners << self.class::Listener.new(self, @listeners, @listener_cond, @connections) while @listeners.size < @min_listener
+			@listeners << self.class::Listener.new(self, @listeners, @listener_cond, @connections, @listener_options) while @listeners.size < @min_listener
 		end
 
 		true
