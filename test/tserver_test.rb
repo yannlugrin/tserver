@@ -9,19 +9,22 @@ SERVER_READER = Queue.new
 
 # The test server can send received data to an IO
 class TestServer < TServer
+
+	class Listener < TServer::Listener
+		protected
+
+			# Send received data on IO and return the data to client
+			def process
+				loop do
+					SERVER_READER << string = @connection.readline.chomp
+					@connection.puts string
+				end
+			end
+	end
+
 	def initialize(options= {})
 		super(options)
 	end
-
-	protected
-
-		# Send received data on IO and return the data to client
-		def process
-			loop do
-				SERVER_READER << string = connection.readline.chomp
-				connection.puts string
-			end
-		end
 end
 
 # The test client can send and receive data to a server
@@ -199,7 +202,7 @@ class TServerTest < Test::Unit::TestCase
 
 		# Close client
 		assert_not_timeout('Client do not close connection') { @client.close }
-		wait_listeners
+		wait_listeners 0
 
 		# Wait server shutdown
 		assert_not_timeout('Server do not shutdown') { shutdown_thread.join }
@@ -217,7 +220,7 @@ class TServerTest < Test::Unit::TestCase
 		assert_not_timeout('Server do not reload') { @server.reload }
 
 		# Do not spawn listeners!
-		assert_equal 0, @server.instance_variable_get(:@listener_threads).size
+		assert_equal 0, @server.instance_variable_get(:@listeners).size
 
 		# Start the server
 		assert_not_timeout('Server do not start') { @server.start }
@@ -226,15 +229,15 @@ class TServerTest < Test::Unit::TestCase
 		assert_not_timeout('Client do not connect') { @client.connect }
 
 		# Copy list of current listeners
-  	listeners_to_exit = @server.instance_variable_get(:@listener_threads).dup
+  	listeners_to_exit = @server.instance_variable_get(:@listeners).dup
 
 		# Reload the server
 		assert_not_timeout('Server do not reload') { @server.reload }
 
 		# Old listener is not terminated (connection with a client is established)
-		wait_listeners 2
-		assert_not_equal listeners_to_exit.first, @server.instance_variable_get(:@listener_threads).first
-		assert_not_equal, listeners_to_exit.first[:conn] = @server.instance_variable_get(:@listener_threads).first[:conn]
+		wait_listeners 1
+		assert_not_equal listeners_to_exit.first, @server.instance_variable_get(:@listeners).first
+		assert_not_equal listeners_to_exit.first.connection, @server.instance_variable_get(:@listeners).first.connection
 
 		# The client can communicate with server
 		assert_not_timeout 'Client do not communicate with server' do
@@ -287,7 +290,7 @@ class TServerTest < Test::Unit::TestCase
 		assert_not_timeout('Client do not connect') { @client_3.connect }
 		assert_not_timeout('Client do not connect') { @client_4.connect }
 		assert_not_timeout('Client do not connect') { @client_5.connect }
-		wait_listeners(4)
+		wait_listeners 4
 
 		# Only 4 listerner for 5 client
 		assert_equal 0, @server.waiting_listeners
@@ -310,6 +313,7 @@ class TServerTest < Test::Unit::TestCase
 
 		# Close client
 		assert_not_timeout('Client do not close connection') { @client.close }
+
 
 		# Server can recerive data from last client
 		assert_not_timeout 'Do not receive data from client' do
@@ -398,14 +402,14 @@ class TServerTest < Test::Unit::TestCase
 
 		# Wait listener spawn
 		def wait_listeners(number = @server.min_listener)
-			assert_not_timeout 'Listener do not exit' do
+			assert_not_timeout do
 				sleep 0.1 until @server.listeners == number
 			end
 		end
 
 		# Wait connection established with listener
 		def wait_connection(number = @server.listeners)
-			assert_not_timeout 'Listener do not exit' do
+			assert_not_timeout do
 				sleep 0.1 until @server.connections.size == number
 			end
 		end
