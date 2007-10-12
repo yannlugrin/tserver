@@ -28,7 +28,8 @@ require 'thwait'
 require 'monitor'
 require 'logger'
 
-# Show README[link://files/README.html] for implementation example.
+# Show README[link://files/README.html] for implementation example or read
+# Listener#process documentation.
 class TServer
 
 	# Show README[link://files/README.html] for implementation example.
@@ -37,7 +38,10 @@ class TServer
 		# Return current TCPSocket or nil.
 		attr_reader :connection
 
-		# options hash is passed to init method.
+		# Server logger instance (default level: Logger::WARN, default output: stderr).
+		attr_reader :logger
+
+		# Pptions hash is passed to init method.
 		def initialize(server, listeners, listener_cond, connections, options = {}) #:nodoc:
 			@server = server
 			@logger = server.logger
@@ -113,7 +117,7 @@ class TServer
 			#
 			# Example (send 'Hello world!' string to client):
 			#	def process
-			#		connection.puts 'Hello world!'
+			#	  connection.puts 'Hello world!'
 			#	end
 			#
 			# For persistant connection, use loop and Timeout.timeout or Tserver.terminated?
@@ -198,7 +202,7 @@ class TServer
 	# Minimum listener permanently spawned (default: 1, minimum: 0).
 	attr_reader :min_listener
 
-	# Server logger instance (default level: Logger:WARN, default output: stderr).
+	# Server logger instance (default level: Logger::WARN, default output: stderr).
 	attr_reader :logger
 
 	DEFAULT_OPTIONS = {
@@ -216,7 +220,7 @@ class TServer
 	# * <tt>:host</tt>  - IP which the server listen on (default: 127.0.0.1).
 	# * <tt>:max_connection</tt>  - Maximum number of simultaneous connection to server (default: 4, minimum: 1).
 	# * <tt>:min_listener</tt>  - Minimum number of listener thread (default: 1, minimum: 0).
-	# * <tt>:log_level</tt>  - Use Logger constants DEBUG, INFO, WARN, ERROR or FATAL to set log level (default: Logger:WARN).
+	# * <tt>:log_level</tt>  - Use Logger constants DEBUG, INFO, WARN, ERROR or FATAL to set log level (default: Logger::WARN).
 	# * <tt>:stdlog</tt>  - IO or filepath for log output (default: $stderr).
 	def initialize(options = {})
 		options = DEFAULT_OPTIONS.merge(options)
