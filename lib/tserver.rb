@@ -88,6 +88,9 @@ class TServer
 		# Override this method to implement configuration of listener, options is
 		# value of 'listener_options' key from server initialization, start or
 		# reload method.
+		#
+		# List of existing instance variable (do not override): @connection, @connections,
+		# @connection_addr, @listeners, @listener_cond, @logger, @server, @terminate, @thread.
 		def init(options = {})
 		end
 
