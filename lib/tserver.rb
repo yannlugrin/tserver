@@ -35,6 +35,9 @@ class TServer
 	# Show README[link://files/README.html] for implementation example.
 	class Listener
 
+		# ProcessError can be used in process method
+		class ProcessError < StandardError; end
+
 		# Return current TCPSocket or nil.
 		attr_reader :connection
 
