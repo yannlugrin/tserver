@@ -41,6 +41,9 @@ class TServer
 		# Server logger instance (default level: Logger::WARN, default output: stderr).
 		attr_reader :logger
 
+		# Thread of listener
+		attr_reader :thread
+
 		# Pptions hash is passed to init method.
 		def initialize(server, listeners, listener_cond, connections, options = {}) #:nodoc:
 			@server = server
@@ -80,6 +83,9 @@ class TServer
 					end
 				ensure
 					@listeners.synchronize { @listeners.delete(self) }
+					close_connection
+					@thread = nil
+
 					listener_terminated
 				end
 			end
@@ -96,14 +102,16 @@ class TServer
 
 		# Exit listener imediatly.
 		def exit
+			@terminate = true
 			@thread.exit
 		end
 
 		# Mark listener to terminate processing of current connection.
-		#
-		# TODO: exit listener if don't have active connection (in thread exclusive block)
 		def terminate
-			@terminate = true
+			Thread.exclusive do
+				@terminate = true
+				@thread.exit if @connection.nil?
+			end
 		end
 
 		# Return array with information for current thread connection:
@@ -253,13 +261,13 @@ class TServer
 	end
 
 	# Start the server, if joined is set at true this method return only when
-	# the server is stopped (you can also use join method after start). listener_options
-	# is a Hash of options for Listener#init.
+	# the server is stopped (you can also use join method after start).
+	# listener_options is a Hash of options for Listener#init merged with current options (override).
 	def start(listener_options = {}, joined = false)
 		@shutdown = false
 		@tcp_server = TCPServer.new(@host, @port)
 
-		@listener_options = listener_options
+		@listener_options = @listener_options.merge(listener_options)
 		@listeners.synchronize do
 			@min_listener.times do
 				@listeners << self.class::Listener.new(self, @listeners, @listener_cond, @connections, @listener_options)
@@ -305,9 +313,16 @@ class TServer
 
 	# Stop imediatly the server (all established connection is interrupted).
 	def stop
+		return if stopped?
+
 		@tcp_server.close rescue nil
 		@listeners.synchronize { @listeners.each {|l| l.exit} }
+
+		ThreadsWait.all_waits(*@listeners.collect{|t| t.thread})
 		@tcp_server_thread.exit rescue nil
+
+		@tcp_server = nil
+		@tcp_server_thread = nil
 
 		true
 	end
@@ -324,23 +339,34 @@ class TServer
 		@listeners.synchronize  do
 			@listeners.each do |listener|
 				listener.terminate
-				@connections << false
 			end
 		end
 
-		ThreadsWait.all_waits(*@listeners)
+		ThreadsWait.all_waits(*@listeners.collect{|t| t.thread})
 		@tcp_server_thread.exit rescue nil
+
+		@tcp_server = nil
 		@tcp_server_thread = nil
 
 		true
 	end
 
+	# Restart the server
+	# listener_options is a Hash of options for Listener#init merged with current options (override).
+	def restart(listener_options = {})
+		return if stopped?
+		stop
+		start(listener_options)
+	end
+
 	# Reload the server
 	# * Spawn new listeners.
 	# * Terminate existing listeners when current connection is closed.
-	# listener_options is a Hash of options for Listener#init.
+	# listener_options is a Hash of options for Listener#init merged with current options (override).
 	def reload(listener_options = {})
 		return if stopped?
+
+		@listener_options = @listener_options.merge(listener_options)
 
 		listeners_to_exit = nil
 		@listeners.synchronize do

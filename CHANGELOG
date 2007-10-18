@@ -1,5 +1,6 @@
 = SVN
 
+* Add method restart to server
 * Listener is a class now, this is a major change, read documentation for more informations
 * Listener can receive a configuration hash
 

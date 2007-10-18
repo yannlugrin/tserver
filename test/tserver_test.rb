@@ -182,6 +182,7 @@ class TServerTest < Test::Unit::TestCase
 		# Start server and client
 		assert_not_timeout('Server do not start') { @server.start }
 		assert_not_timeout('Client do not connect') { @client.connect }
+		wait_connections
 
 		# Shutdown the server
 		shutdown_thread = nil
@@ -215,6 +216,47 @@ class TServerTest < Test::Unit::TestCase
 		end
 	end
 
+	def test_should_be_restart
+		# Restart a non started server
+		assert_not_timeout('Server do not restart') { @server.restart }
+
+		# Do not spawn listeners!
+		assert_equal 0, @server.instance_variable_get(:@listeners).size
+
+		# Start the server
+		assert_not_timeout('Server do not start') { @server.start }
+
+		# The server is started and accept connection
+		assert_not_timeout('Client do not connect') { @client.connect }
+		wait_connections
+
+		# Copy list of current listeners
+  	listeners_to_exit = @server.instance_variable_get(:@listeners).dup
+
+		# Restart the server
+		assert_not_timeout('Server do not reload') { @server.restart }
+
+		# Old listener is exited
+		wait_listeners 1
+		assert_nil listeners_to_exit.first.thread
+		assert_nil listeners_to_exit.first.connection
+
+		# The client can't communicate with server
+		assert_raise(Errno::EPIPE) do
+			@client.send 'test string'
+		end
+
+		# The server is started and accept connection
+		assert_not_timeout('Client do not connect') { @client.connect }
+
+		# The client can communicate with server
+		assert_not_timeout 'Client do not communicate with server' do
+			@client.send 'test string'
+			assert_equal 'test string', SERVER_READER.pop.chomp
+			assert_equal 'test string', @client.receive
+		end
+	end
+
 	def test_should_be_reload
 		# Reload a non started server
 		assert_not_timeout('Server do not reload') { @server.reload }
@@ -227,6 +269,7 @@ class TServerTest < Test::Unit::TestCase
 
 		# The server is started and accept connection
 		assert_not_timeout('Client do not connect') { @client.connect }
+		wait_connections
 
 		# Copy list of current listeners
   	listeners_to_exit = @server.instance_variable_get(:@listeners).dup
@@ -381,7 +424,7 @@ class TServerTest < Test::Unit::TestCase
 
 		# Start client
 		assert_not_timeout('Client do not connect') { @client.connect }
-		wait_connection
+		wait_connections
 
 		# Connection information
 		assert_equal 1, @server.connections.size
@@ -408,7 +451,7 @@ class TServerTest < Test::Unit::TestCase
 		end
 
 		# Wait connection established with listener
-		def wait_connection(number = @server.listeners)
+		def wait_connections(number = @server.listeners)
 			assert_not_timeout do
 				sleep 0.1 until @server.connections.size == number
 			end
