@@ -241,14 +241,7 @@ class TServer
 	def initialize(options = {})
 		options = DEFAULT_OPTIONS.merge(options)
 
-		@port = options[:port]
-		@host = options[:host]
-
-		@max_connection = options[:max_connection] < 1 ? 1 : options[:max_connection]
-		@min_listener = options[:min_listener] < 0 ? 0 : (options[:min_listener] > @max_connection ? @max_connection : options[:min_listener])
-
 		@logger = Logger.new(options[:stdlog])
-		@logger.level = options[:log_level]
 
 		@tcp_server = nil
 		@tcp_server_thread = nil
@@ -257,20 +250,39 @@ class TServer
 		@listeners = []
 		@listeners.extend(MonitorMixin)
 		@listener_cond = @listeners.new_cond
-
-		@listener_options = options[:listener_options]
+		@listener_options = {}
 
 		@shutdown = false
+
+		init(options)
+	end
+
+	#
+	def init(options = {})
+		@port = options[:port] if options.has_key?(:port)
+		@host = options[:host] if options.has_key?(:host)
+
+		@max_connection = options[:max_connection] < 1 ? 1 : options[:max_connection] if options.has_key?(:max_connection)
+		if options.has_key?(:min_listener)
+			@min_listener = options[:min_listener] < 0 ? 0 : (options[:min_listener] > @max_connection ? @max_connection : options[:min_listener])
+		else
+			@min_listener = @max_connection if @min_listener > @max_connection
+		end
+
+		@logger.level = options[:log_level] if options.has_key?(:log_level)
+
+		@listener_options.merge!(options[:listener_options]) if options.has_key?(:listener_options)
 	end
 
 	# Start the server, if joined is set at true this method return only when
 	# the server is stopped (you can also use join method after start).
 	# listener_options is a Hash of options for Listener#init merged with current options (override).
-	def start(listener_options = {}, joined = false)
+	def start(options = {}, joined = false)
 		@shutdown = false
 		@tcp_server = TCPServer.new(@host, @port)
 
-		@listener_options = @listener_options.merge(listener_options)
+		init(options)
+
 		@listeners.synchronize do
 			@min_listener.times do
 				@listeners << self.class::Listener.new(self, @listeners, @listener_cond, @connections, @listener_options)
@@ -356,26 +368,24 @@ class TServer
 
 	# Restart the server
 	# listener_options is a Hash of options for Listener#init merged with current options (override).
-	def restart(listener_options = {})
+	def restart(options = {})
 		return if stopped?
 		stop
-		start(listener_options)
+		start(options)
 	end
 
 	# Reload the server
 	# * Spawn new listeners.
 	# * Terminate existing listeners when current connection is closed.
 	# listener_options is a Hash of options for Listener#init merged with current options (override).
-	def reload(listener_options = {})
+	def reload(options = {})
 		return if stopped?
-
-		@listener_options = @listener_options.merge(listener_options)
 
 		listeners_to_exit = nil
 		@listeners.synchronize do
 			listeners_to_exit = @listeners.dup
 			@listeners.clear
-			@listener_options = listener_options
+			init(options)
 		end
 
 		listeners_to_exit.each do |listener|
