@@ -242,7 +242,7 @@ class TServerTest < Test::Unit::TestCase
 		assert_nil listeners_to_exit.first.connection
 
 		# The client can't communicate with server
-		assert_raise(Errno::EPIPE) do
+    assert_raise(RUBY_PLATFORM =~ /win32/ ? Errno::ECONNABORTED : Errno::EPIPE) do
 			@client.send 'test string'
 		end
 
