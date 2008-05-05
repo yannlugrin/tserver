@@ -44,18 +44,18 @@ Gem::manage_gems
 spec = Gem::Specification.new do |s|
   s.platform  =   Gem::Platform::RUBY
 
-  s.name			=	'tserver'
-  s.version		=	TSERVER_VERSION
+  s.name          = 'tserver'
+  s.version       = TSERVER_VERSION
 
-  s.author		=	'Yann Lugrin'
-  s.email			=	'yann.lugrin@sans-savoir.net'
-  s.summary		=	'A persistant multithread TCP server'
-  s.homepage	=	'http://dev.sans-savoir.net/trac/tserver'
+  s.author        = 'Yann Lugrin'
+  s.email         = 'yann.lugrin@sans-savoir.net'
+  s.summary       = 'A persistant multithread TCP server'
+  s.homepage      = 'http://github.com/yannlugrin/tserver/wikis'
 
-  s.files			=	FileList['lib/*.rb', 'test/*'].to_a
+  s.files         = FileList['lib/*.rb', 'test/*'].to_a
 
-  s.require_path	=	'lib'
-  s.test_files		= Dir.glob('tests/*_test.rb')
+  s.require_path  = 'lib'
+  s.test_files    = Dir.glob('tests/*_test.rb')
 
   s.has_rdoc = true
   s.extra_rdoc_files = ['README', 'CHANGELOG', 'LICENSE']

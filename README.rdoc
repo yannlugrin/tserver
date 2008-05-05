@@ -1,6 +1,6 @@
 = TServer
 
-Author::        Yann Lugrin (mailto:yann.lugrin@sans-savoir.net)
+Author::        Yann Lugrin (yann.lugrin at sans-savoir dot net)
 Copyright:: 		Copyright (c) 2007-2008 Yann Lugrin
 Licence::       MIT[link://files/LICENSE.html]
 Last version::	0.2.0
